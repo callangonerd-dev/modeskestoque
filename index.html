@@ -1,15 +1,74 @@
 <!DOCTYPE html>
 
 <html lang="pt-BR">
-<head><style>button[onclick="toggleTheme()"],button[aria-label="Alternar tema"],button:has(> #theme-icon),button:has(> #theme-icon-header),button:has(> .fa-moon),button:has(> .fa-sun){display:none!important}input,select{color-scheme:light!important}</style>
+<head><script>/* salvamento local seguro */(function(){try{var o=Storage.prototype.setItem,av=0;Storage.prototype.setItem=function(k,v){try{return o.call(this,k,v);}catch(e){console.error('Falha ao salvar localmente',k,e);if(!av){av=1;setTimeout(function(){av=0},5000);alert('Não foi possível salvar os dados neste navegador (espaço local cheio). Exporte um backup e remova imagens grandes.');}}};}catch(e){}})();</script><style>button[onclick="toggleTheme()"],button[aria-label="Alternar tema"],button:has(> #theme-icon),button:has(> #theme-icon-header),button:has(> .fa-moon),button:has(> .fa-sun){display:none!important}input,select{color-scheme:light!important}</style>
 <script>(function(){try{localStorage.setItem('modesk_senac_tema','light')}catch(e){}var h=document.documentElement;h.classList.remove('dark');new MutationObserver(function(){if(h.classList.contains('dark'))h.classList.remove('dark')}).observe(h,{attributes:true,attributeFilter:['class']});})();</script><style id="mo-boot">html:not(.mo-ready){background:#eaf0f6}html.dark:not(.mo-ready){background:#060d14}html:not(.mo-ready) body{visibility:hidden!important}@keyframes mo-fade{from{opacity:0}to{opacity:1}}html.mo-ready body{animation:mo-fade .25s ease both}@media(prefers-reduced-motion:reduce){html.mo-ready body{animation:none}}</style><noscript><style>html:not(.mo-ready) body{visibility:visible!important}</style></noscript><script>setTimeout(function(){document.documentElement.classList.add('mo-ready')},4500)</script><script>if(!localStorage.getItem('modesk_senac_tema')){document.documentElement.classList.remove('dark');localStorage.setItem('modesk_senac_tema','light');}</script>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>MODESK — ESTOQUE DESPENSA</title>
-<script src="https://cdn.tailwindcss.com"></script>
 <script>
-tailwind.config = { darkMode:'class', theme:{ extend:{ colors:{ brand:{50:'#fff7ed',100:'#ffedd5',500:'#f97316',600:'#ea580c',700:'#c2410c',dark:'#101318'} }, boxShadow:{soft:'0 18px 45px rgba(15,23,42,.10)', glow:'0 12px 28px rgba(234,88,12,.24)'} } } }
+(function (root) {
+  const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  function exempt(name, category) {
+    const n = normalize(name), c = normalize(category);
+    // Food preparations and non-alcoholic drinks must not inherit an alcohol exemption.
+    if (/vinagre|refrigerante|sem alcool|zero alcool|nao alcool|alcool 0|0[.,]0%|bolo|chocolate|bombom|molho|essencia|aroma|creme|recheio|licoroso/.test(n)) return false;
+    if (maint(name, category)) return true;
+    if (/embalag|descartave|decoracao|decorativo/.test(c)) return true;
+    if (/bebidas alcoolicas|destilad|vinhos|cervejas|licor|aperitivo/.test(c)) return true;
+    return /\b(vinho|vinhos|licor|licores|cachaca|vodka|vodkas|cerveja|cervejas|rum|rom|whisky|whiskey|uisque|gin|gim|tequila|conhaque|brandy|espumante|champagne|prosecco|chopp|chope|aguardente|vermute|saque|sake)\b|embalage|descartave|decoracao|decorativo|guardanapo|papel toalha|papel aluminio|filme pvc|sacola|marmitex|isopor|balao|fita decorativa/.test(n);
+  }
+  const MANUT = /\b(lampada|lampadas|pilha|pilhas|bateria|baterias|fita adesiva|fita crepe|fita isolante|durex|cola branca|cola quente|super cola|parafuso|parafusos|prego|pregos|bucha|buchas de parede|tomada|extensao|filtro de linha|cabo usb|interruptor|ferramenta|chave de fenda|martelo|alicate|trena|tinta|pincel|rolo de pintura|lixa|caneta|canetas|lapis|papel a4|papel sulfite|sulfite|grampeador|grampos|clipe|clipes|envelope|envelopes|pasta suspensa|pasta arquivo|pasta catalogo|tesoura|marca texto|marcador|toner|cartucho|post.?it|bloco de notas|etiqueta|etiquetas|regua|calculadora|fechadura|cadeado|dobradica|silicone|veda rosca|mangueira|filtro de ar|fusivel|disjuntor|lubrificante|wd.?40|corretivo|perfurador|elastico|barbante|abracadeira|mouse|teclado|carregador|bobina|bobinas|papel termico|rolo termico|rolo de papel|bobina termica|bobina para impressora|fita de impressora|ribbon|impressora|papel cartao|cartolina|papel kraft|caderno|agenda|prancheta|carimbo|almofada de carimbo|apontador|pen.?drive|cabo hdmi|clips|manutencao|escritorio|papelaria)\b/;
+  function maint(name, category) {
+    const n = normalize(name), c = normalize(category);
+    if (/manutencao|escritorio|papelaria/.test(c)) return true;
+    if (/coca|chocolate|bolo|massa|alimento|comestivel/.test(n)) return false;
+    return MANUT.test(n);
+  }
+  const SUGEST = [
+    ['MANUTENÇÃO', n => maint(n, '')],
+    ['LIMPEZA', n => /detergente|sabao|desinfetante|agua sanitaria|cloro|esponja|alcool 70|alcool gel|multiuso|limpa|desengordurante|saco de lixo|pano de chao|vassoura|rodo|flanela|lustra|amaciante|sabonete|papel higienico/.test(n)],
+    ['DESCARTAVEL', n => /descartave|guardanapo|papel toalha|filme pvc|papel aluminio|sacola|marmitex|isopor|luva|touca|copo plastico|canudo|embalag|forminha|palito/.test(n)],
+    ['VINHOS', n => /\b(vinho|vinhos|espumante|champagne|prosecco|frisante)\b/.test(n)],
+    ['LICOR - APERITIVO', n => /\b(licor|licores|vermute|aperitivo|campari|aperol|amarula|bitter)\b/.test(n)],
+    ['DESTILADO', n => /\b(cachaca|vodka|vodkas|whisky|whiskey|uisque|gin|gim|rum|tequila|conhaque|brandy|aguardente|saque|sake)\b/.test(n)],
+    ['CAFÉS', n => /\bcafe|capsula|expresso|cappuccino/.test(n)],
+    ['BEBIDAS', n => /refrigerante|suco|\bagua\b|cerveja|chopp|chope|energetico|isotonico|cha gelado|tonica|refresco|coca/.test(n)],
+    ['LATICÍNIOS', n => /leite|queijo|manteiga|iogurte|requeijao|nata|creme de leite|cream cheese|mussarela|muzzarela|parmesao|ricota|margarina/.test(n)],
+    ['PROCESSADOS', n => /presunto|salsicha|linguica|mortadela|salame|peito de peru|enlatad|em conserva|congelad|nuggets|hamburguer/.test(n)],
+    ['PROTEÍNAS', n => /carne|frango|peixe|file|bovin|suin|picanha|costela|ovo|ovos|bacon|camarao|salmao|tilapia|patinho|alcatra|lombo|peito/.test(n)],
+    ['CONFEITARIA', n => /chocolate|cacau|granulado|confeit|fondant|glucose|corante|essencia|aroma|fermento|leite condensado|chantilly|cobertura|gotas|pasta americana|gelatina|creme confeiteiro/.test(n)],
+    ['SECOS', n => /arroz|feijao|farinha|acucar|macarrao|massa|aveia|grao|lentilha|milho|fuba|polvilho|amido|trigo|quinoa|castanha|amendoim|uva passa/.test(n)],
+    ['MERCEARIA', n => /oleo|azeite|\bsal\b|vinagre|molho|tempero|ketchup|maionese|mostarda|extrato|caldo|pimenta|oregano|condimento|biscoito|bolacha/.test(n)],
+  ];
+  function suggest(name, list) {
+    const n = normalize(name);
+    if (n.trim().length < 3) return '';
+    for (const [cat, test] of SUGEST) {
+      if (!test(n)) continue;
+      const hit = (list || []).find(c => normalize(c) === normalize(cat));
+      if (hit) return hit;
+      if (!list) return cat;
+    }
+    return '';
+  }
+  function validDate(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return false;
+    const d = new Date(value + 'T00:00:00Z');
+    return Number.isFinite(d.getTime()) && d.toISOString().slice(0, 10) === value;
+  }
+  function error(item) {
+    if (!validDate(item.entrada)) return 'Informe a data de entrada de ' + (item.nome || 'cada item') + '.';
+    if (!item.validade && exempt(item.nome, item.categoria)) return '';
+    if (!validDate(item.validade)) return 'Informe a data de validade de ' + (item.nome || 'cada insumo perecível') + '.';
+    return '';
+  }
+  root.ModeskExpiry = { exempt, validDate, error, suggest, maint };
+})(globalThis);
 </script>
+<style>
+*,:after,:before{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/*! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com*/*,:after,:before{box-sizing:border-box;border:0 solid #e5e7eb}:after,:before{--tw-content:""}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;-o-tab-size:4;tab-size:4;font-family:ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0}fieldset,legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::-moz-placeholder,textarea::-moz-placeholder{opacity:1;color:#9ca3af}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.pointer-events-none{pointer-events:none}.visible{visibility:visible}.static{position:static}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.sticky{position:sticky}.inset-0{inset:0}.bottom-6{bottom:1.5rem}.right-6{right:1.5rem}.top-0{top:0}.z-40{z-index:40}.z-\[70\]{z-index:70}.z-\[80\]{z-index:80}.col-span-1{grid-column:span 1/span 1}.col-span-10{grid-column:span 10/span 10}.col-span-12{grid-column:span 12/span 12}.col-span-2{grid-column:span 2/span 2}.col-span-3{grid-column:span 3/span 3}.col-span-4{grid-column:span 4/span 4}.col-span-5{grid-column:span 5/span 5}.mx-auto{margin-left:auto;margin-right:auto}.-mt-3{margin-top:-.75rem}.mb-1{margin-bottom:.25rem}.mb-2{margin-bottom:.5rem}.mb-3{margin-bottom:.75rem}.mb-4{margin-bottom:1rem}.mb-5{margin-bottom:1.25rem}.mb-6{margin-bottom:1.5rem}.ml-2{margin-left:.5rem}.ml-auto{margin-left:auto}.mr-2{margin-right:.5rem}.mt-0\.5{margin-top:.125rem}.mt-1{margin-top:.25rem}.mt-2{margin-top:.5rem}.mt-3{margin-top:.75rem}.mt-4{margin-top:1rem}.mt-5{margin-top:1.25rem}.mt-6{margin-top:1.5rem}.block{display:block}.inline{display:inline}.flex{display:flex}.inline-flex{display:inline-flex}.\!table{display:table!important}.table{display:table}.\!grid{display:grid!important}.grid{display:grid}.hidden{display:none}.h-10{height:2.5rem}.h-11{height:2.75rem}.h-12{height:3rem}.h-2{height:.5rem}.h-64{height:16rem}.h-8{height:2rem}.h-\[42px\]{height:42px}.max-h-\[38vh\]{max-height:38vh}.max-h-\[40vh\]{max-height:40vh}.max-h-\[42vh\]{max-height:42vh}.max-h-\[46vh\]{max-height:46vh}.max-h-\[48vh\]{max-height:48vh}.max-h-\[50vh\]{max-height:50vh}.max-h-\[88vh\]{max-height:88vh}.min-h-screen{min-height:100vh}.w-10{width:2.5rem}.w-11{width:2.75rem}.w-12{width:3rem}.w-2{width:.5rem}.w-72{width:18rem}.w-8{width:2rem}.w-\[390px\]{width:390px}.w-full{width:100%}.min-w-0{min-width:0}.max-w-3xl{max-width:48rem}.max-w-5xl{max-width:64rem}.max-w-\[1440px\]{max-width:1440px}.max-w-\[calc\(100vw-2rem\)\]{max-width:calc(100vw - 2rem)}.max-w-lg{max-width:32rem}.flex-1{flex:1 1 0%}.shrink-0{flex-shrink:0}.transform{transform:translate(var(--tw-translate-x),var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-pointer{cursor:pointer}.resize{resize:both}.grid-cols-1{grid-template-columns:repeat(1,minmax(0,1fr))}.grid-cols-12{grid-template-columns:repeat(12,minmax(0,1fr))}.grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.items-start{align-items:flex-start}.items-end{align-items:flex-end}.items-center{align-items:center}.justify-end{justify-content:flex-end}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-2{gap:.5rem}.gap-3{gap:.75rem}.gap-4{gap:1rem}.gap-5{gap:1.25rem}.gap-6{gap:1.5rem}.space-x-4>:not([hidden])~:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(1rem*var(--tw-space-x-reverse));margin-left:calc(1rem*(1 - var(--tw-space-x-reverse)))}.space-x-6>:not([hidden])~:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(1.5rem*var(--tw-space-x-reverse));margin-left:calc(1.5rem*(1 - var(--tw-space-x-reverse)))}.space-y-1>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.25rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.25rem*var(--tw-space-y-reverse))}.space-y-2>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.5rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.5rem*var(--tw-space-y-reverse))}.space-y-3>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.75rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.75rem*var(--tw-space-y-reverse))}.space-y-4>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem*var(--tw-space-y-reverse))}.space-y-5>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1.25rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1.25rem*var(--tw-space-y-reverse))}.space-y-6>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1.5rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1.5rem*var(--tw-space-y-reverse))}.space-y-7>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1.75rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1.75rem*var(--tw-space-y-reverse))}.divide-y>:not([hidden])~:not([hidden]){--tw-divide-y-reverse:0;border-top-width:calc(1px*(1 - var(--tw-divide-y-reverse)));border-bottom-width:calc(1px*var(--tw-divide-y-reverse))}.divide-slate-100>:not([hidden])~:not([hidden]){--tw-divide-opacity:1;border-color:rgb(241 245 249/var(--tw-divide-opacity,1))}.overflow-auto{overflow:auto}.overflow-hidden{overflow:hidden}.overflow-x-auto{overflow-x:auto}.truncate{overflow:hidden;text-overflow:ellipsis}.truncate,.whitespace-nowrap{white-space:nowrap}.rounded{border-radius:.25rem}.rounded-2xl{border-radius:1rem}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:.5rem}.rounded-xl{border-radius:.75rem}.border{border-width:1px}.border-2{border-width:2px}.border-b{border-bottom-width:1px}.border-b-2{border-bottom-width:2px}.border-l-2{border-left-width:2px}.border-t{border-top-width:1px}.border-dashed{border-style:dashed}.border-amber-400\/40{border-color:rgba(251,191,36,.4)}.border-amber-500\/20{border-color:rgba(245,158,11,.2)}.border-amber-500\/30{border-color:rgba(245,158,11,.3)}.border-blue-500\/20{border-color:rgba(59,130,246,.2)}.border-blue-500\/30{border-color:rgba(59,130,246,.3)}.border-brand-600{--tw-border-opacity:1;border-color:rgb(234 88 12/var(--tw-border-opacity,1))}.border-brand-600\/40{border-color:rgba(234,88,12,.4)}.border-red-500\/20{border-color:rgba(239,68,68,.2)}.border-red-500\/30{border-color:rgba(239,68,68,.3)}.border-slate-100{--tw-border-opacity:1;border-color:rgb(241 245 249/var(--tw-border-opacity,1))}.border-slate-200{--tw-border-opacity:1;border-color:rgb(226 232 240/var(--tw-border-opacity,1))}.border-slate-300{--tw-border-opacity:1;border-color:rgb(203 213 225/var(--tw-border-opacity,1))}.bg-\[\#f3f5f8\]{--tw-bg-opacity:1;background-color:rgb(243 245 248/var(--tw-bg-opacity,1))}.bg-amber-500{--tw-bg-opacity:1;background-color:rgb(245 158 11/var(--tw-bg-opacity,1))}.bg-amber-500\/10{background-color:rgba(245,158,11,.1)}.bg-amber-600{--tw-bg-opacity:1;background-color:rgb(217 119 6/var(--tw-bg-opacity,1))}.bg-black\/50{background-color:rgba(0,0,0,.5)}.bg-blue-100{--tw-bg-opacity:1;background-color:rgb(219 234 254/var(--tw-bg-opacity,1))}.bg-blue-50{--tw-bg-opacity:1;background-color:rgb(239 246 255/var(--tw-bg-opacity,1))}.bg-blue-500{--tw-bg-opacity:1;background-color:rgb(59 130 246/var(--tw-bg-opacity,1))}.bg-blue-500\/10{background-color:rgba(59,130,246,.1)}.bg-blue-600{--tw-bg-opacity:1;background-color:rgb(37 99 235/var(--tw-bg-opacity,1))}.bg-blue-600\/10{background-color:rgba(37,99,235,.1)}.bg-brand-100{--tw-bg-opacity:1;background-color:rgb(255 237 213/var(--tw-bg-opacity,1))}.bg-brand-50{--tw-bg-opacity:1;background-color:rgb(255 247 237/var(--tw-bg-opacity,1))}.bg-brand-500{--tw-bg-opacity:1;background-color:rgb(249 115 22/var(--tw-bg-opacity,1))}.bg-brand-600{--tw-bg-opacity:1;background-color:rgb(234 88 12/var(--tw-bg-opacity,1))}.bg-brand-600\/10{background-color:rgba(234,88,12,.1)}.bg-orange-500{--tw-bg-opacity:1;background-color:rgb(249 115 22/var(--tw-bg-opacity,1))}.bg-orange-600{--tw-bg-opacity:1;background-color:rgb(234 88 12/var(--tw-bg-opacity,1))}.bg-red-500{--tw-bg-opacity:1;background-color:rgb(239 68 68/var(--tw-bg-opacity,1))}.bg-red-500\/10{background-color:rgba(239,68,68,.1)}.bg-red-600{--tw-bg-opacity:1;background-color:rgb(220 38 38/var(--tw-bg-opacity,1))}.bg-red-700{--tw-bg-opacity:1;background-color:rgb(185 28 28/var(--tw-bg-opacity,1))}.bg-sky-700{--tw-bg-opacity:1;background-color:rgb(3 105 161/var(--tw-bg-opacity,1))}.bg-slate-100{--tw-bg-opacity:1;background-color:rgb(241 245 249/var(--tw-bg-opacity,1))}.bg-slate-200{--tw-bg-opacity:1;background-color:rgb(226 232 240/var(--tw-bg-opacity,1))}.bg-slate-50{--tw-bg-opacity:1;background-color:rgb(248 250 252/var(--tw-bg-opacity,1))}.bg-slate-500\/10{background-color:rgba(100,116,139,.1)}.bg-slate-700{--tw-bg-opacity:1;background-color:rgb(51 65 85/var(--tw-bg-opacity,1))}.bg-slate-800{--tw-bg-opacity:1;background-color:rgb(30 41 59/var(--tw-bg-opacity,1))}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255/var(--tw-bg-opacity,1))}.bg-white\/90{background-color:hsla(0,0%,100%,.9)}.bg-white\/95{background-color:hsla(0,0%,100%,.95)}.bg-gradient-to-tr{background-image:linear-gradient(to top right,var(--tw-gradient-stops))}.from-brand-700{--tw-gradient-from:#c2410c var(--tw-gradient-from-position);--tw-gradient-to:rgba(194,65,12,0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from),var(--tw-gradient-to)}.to-brand-500{--tw-gradient-to:#f97316 var(--tw-gradient-to-position)}.p-3{padding:.75rem}.p-4{padding:1rem}.p-5{padding:1.25rem}.p-6{padding:1.5rem}.p-8{padding:2rem}.px-1{padding-left:.25rem;padding-right:.25rem}.px-2{padding-left:.5rem;padding-right:.5rem}.px-2\.5{padding-left:.625rem;padding-right:.625rem}.px-3{padding-left:.75rem;padding-right:.75rem}.px-4{padding-left:1rem;padding-right:1rem}.px-5{padding-left:1.25rem;padding-right:1.25rem}.px-6{padding-left:1.5rem;padding-right:1.5rem}.py-0\.5{padding-top:.125rem;padding-bottom:.125rem}.py-1{padding-top:.25rem;padding-bottom:.25rem}.py-1\.5{padding-top:.375rem;padding-bottom:.375rem}.py-2{padding-top:.5rem;padding-bottom:.5rem}.py-2\.5{padding-top:.625rem;padding-bottom:.625rem}.py-3{padding-top:.75rem;padding-bottom:.75rem}.py-6{padding-top:1.5rem;padding-bottom:1.5rem}.py-8{padding-top:2rem;padding-bottom:2rem}.pb-1{padding-bottom:.25rem}.pb-3{padding-bottom:.75rem}.pb-4{padding-bottom:1rem}.pl-4{padding-left:1rem}.pr-1{padding-right:.25rem}.pt-3{padding-top:.75rem}.pt-4{padding-top:1rem}.text-left{text-align:left}.text-center{text-align:center}.text-right{text-align:right}.font-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace}.text-2xl{font-size:1.5rem;line-height:2rem}.text-3xl{font-size:1.875rem;line-height:2.25rem}.text-\[10px\]{font-size:10px}.text-\[11px\]{font-size:11px}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:.75rem;line-height:1rem}.font-bold{font-weight:700}.font-extrabold{font-weight:800}.font-medium{font-weight:500}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.leading-relaxed{line-height:1.625}.tracking-tight{letter-spacing:-.025em}.tracking-wider{letter-spacing:.05em}.tracking-widest{letter-spacing:.1em}.text-amber-500{--tw-text-opacity:1;color:rgb(245 158 11/var(--tw-text-opacity,1))}.text-amber-600{--tw-text-opacity:1;color:rgb(217 119 6/var(--tw-text-opacity,1))}.text-blue-500{--tw-text-opacity:1;color:rgb(59 130 246/var(--tw-text-opacity,1))}.text-blue-600{--tw-text-opacity:1;color:rgb(37 99 235/var(--tw-text-opacity,1))}.text-brand-600{--tw-text-opacity:1;color:rgb(234 88 12/var(--tw-text-opacity,1))}.text-red-500{--tw-text-opacity:1;color:rgb(239 68 68/var(--tw-text-opacity,1))}.text-slate-300{--tw-text-opacity:1;color:rgb(203 213 225/var(--tw-text-opacity,1))}.text-slate-400{--tw-text-opacity:1;color:rgb(148 163 184/var(--tw-text-opacity,1))}.text-slate-500{--tw-text-opacity:1;color:rgb(100 116 139/var(--tw-text-opacity,1))}.text-slate-600{--tw-text-opacity:1;color:rgb(71 85 105/var(--tw-text-opacity,1))}.text-slate-800{--tw-text-opacity:1;color:rgb(30 41 59/var(--tw-text-opacity,1))}.text-slate-900{--tw-text-opacity:1;color:rgb(15 23 42/var(--tw-text-opacity,1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255/var(--tw-text-opacity,1))}.opacity-40{opacity:.4}.opacity-60{opacity:.6}.shadow-2xl{--tw-shadow:0 25px 50px -12px rgba(0,0,0,.25);--tw-shadow-colored:0 25px 50px -12px var(--tw-shadow-color)}.shadow-2xl,.shadow-sm{box-shadow:var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow)}.shadow-sm{--tw-shadow:0 1px 2px 0 rgba(0,0,0,.05);--tw-shadow-colored:0 1px 2px 0 var(--tw-shadow-color)}.outline{outline-style:solid}.ring-2{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow,0 0 #0000)}.ring-brand-600{--tw-ring-opacity:1;--tw-ring-color:rgb(234 88 12/var(--tw-ring-opacity,1))}.invert{--tw-invert:invert(100%)}.filter,.invert{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.backdrop-blur-sm{--tw-backdrop-blur:blur(4px)}.backdrop-blur-sm,.backdrop-blur-xl{-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.backdrop-blur-xl{--tw-backdrop-blur:blur(24px)}.transition{transition-property:color,background-color,border-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,filter,-webkit-backdrop-filter;transition-property:color,background-color,border-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,filter,backdrop-filter;transition-property:color,background-color,border-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,filter,backdrop-filter,-webkit-backdrop-filter;transition-timing-function:cubic-bezier(.4,0,.2,1);transition-duration:.15s}.transition-colors{transition-property:color,background-color,border-color,text-decoration-color,fill,stroke;transition-timing-function:cubic-bezier(.4,0,.2,1);transition-duration:.15s}.duration-300{transition-duration:.3s}.ease-in-out{transition-timing-function:cubic-bezier(.4,0,.2,1)}.ease-out{transition-timing-function:cubic-bezier(0,0,.2,1)}.hover\:border-brand-600:hover{--tw-border-opacity:1;border-color:rgb(234 88 12/var(--tw-border-opacity,1))}.hover\:bg-amber-600:hover{--tw-bg-opacity:1;background-color:rgb(217 119 6/var(--tw-bg-opacity,1))}.hover\:bg-amber-700:hover{--tw-bg-opacity:1;background-color:rgb(180 83 9/var(--tw-bg-opacity,1))}.hover\:bg-blue-700:hover{--tw-bg-opacity:1;background-color:rgb(29 78 216/var(--tw-bg-opacity,1))}.hover\:bg-brand-50:hover{--tw-bg-opacity:1;background-color:rgb(255 247 237/var(--tw-bg-opacity,1))}.hover\:bg-brand-700:hover{--tw-bg-opacity:1;background-color:rgb(194 65 12/var(--tw-bg-opacity,1))}.hover\:bg-red-700:hover{--tw-bg-opacity:1;background-color:rgb(185 28 28/var(--tw-bg-opacity,1))}.hover\:bg-sky-800:hover{--tw-bg-opacity:1;background-color:rgb(7 89 133/var(--tw-bg-opacity,1))}.hover\:bg-slate-100:hover{--tw-bg-opacity:1;background-color:rgb(241 245 249/var(--tw-bg-opacity,1))}.hover\:bg-slate-50:hover{--tw-bg-opacity:1;background-color:rgb(248 250 252/var(--tw-bg-opacity,1))}.hover\:bg-slate-800:hover{--tw-bg-opacity:1;background-color:rgb(30 41 59/var(--tw-bg-opacity,1))}.hover\:text-red-500:hover{--tw-text-opacity:1;color:rgb(239 68 68/var(--tw-text-opacity,1))}.hover\:text-slate-700:hover{--tw-text-opacity:1;color:rgb(51 65 85/var(--tw-text-opacity,1))}.dark\:divide-slate-800:is(.dark *)>:not([hidden])~:not([hidden]){--tw-divide-opacity:1;border-color:rgb(30 41 59/var(--tw-divide-opacity,1))}.dark\:border-slate-700:is(.dark *){--tw-border-opacity:1;border-color:rgb(51 65 85/var(--tw-border-opacity,1))}.dark\:border-slate-800:is(.dark *){--tw-border-opacity:1;border-color:rgb(30 41 59/var(--tw-border-opacity,1))}.dark\:bg-\[\#0f1218\]:is(.dark *){--tw-bg-opacity:1;background-color:rgb(15 18 24/var(--tw-bg-opacity,1))}.dark\:bg-slate-700:is(.dark *){--tw-bg-opacity:1;background-color:rgb(51 65 85/var(--tw-bg-opacity,1))}.dark\:bg-slate-800:is(.dark *){--tw-bg-opacity:1;background-color:rgb(30 41 59/var(--tw-bg-opacity,1))}.dark\:bg-slate-800\/70:is(.dark *){background-color:rgba(30,41,59,.7)}.dark\:bg-slate-900:is(.dark *){--tw-bg-opacity:1;background-color:rgb(15 23 42/var(--tw-bg-opacity,1))}.dark\:bg-slate-900\/90:is(.dark *){background-color:rgba(15,23,42,.9)}.dark\:bg-slate-900\/95:is(.dark *){background-color:rgba(15,23,42,.95)}.dark\:text-slate-100:is(.dark *){--tw-text-opacity:1;color:rgb(241 245 249/var(--tw-text-opacity,1))}.dark\:text-slate-300:is(.dark *){--tw-text-opacity:1;color:rgb(203 213 225/var(--tw-text-opacity,1))}.dark\:text-slate-400:is(.dark *){--tw-text-opacity:1;color:rgb(148 163 184/var(--tw-text-opacity,1))}.dark\:hover\:bg-slate-800:hover:is(.dark *){--tw-bg-opacity:1;background-color:rgb(30 41 59/var(--tw-bg-opacity,1))}.dark\:hover\:bg-slate-800\/50:hover:is(.dark *){background-color:rgba(30,41,59,.5)}.dark\:hover\:text-slate-200:hover:is(.dark *){--tw-text-opacity:1;color:rgb(226 232 240/var(--tw-text-opacity,1))}@media (min-width:640px){.sm\:col-span-1{grid-column:span 1/span 1}.sm\:col-span-2{grid-column:span 2/span 2}.sm\:col-span-3{grid-column:span 3/span 3}.sm\:block{display:block}.sm\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.sm\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.sm\:p-6{padding:1.5rem}.sm\:px-6{padding-left:1.5rem;padding-right:1.5rem}}@media (min-width:768px){.md\:col-span-2{grid-column:span 2/span 2}.md\:col-span-3{grid-column:span 3/span 3}.md\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.md\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.md\:grid-cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}}@media (min-width:1024px){.lg\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.lg\:p-8{padding:2rem}}@media (min-width:1280px){.xl\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='mg' x1='0' y1='1' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%230b3d7a'/%3E%3Cstop offset='1' stop-color='%233b8ef0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url%28%23mg%29'/%3E%3Cpath d='M15 40V17l17 14 17-14v23' fill='none' stroke='%23fff' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3Crect x='13' y='45' width='10' height='7' rx='1.6' fill='%23fff'/%3E%3Crect x='27' y='45' width='10' height='7' rx='1.6' fill='%23fff' opacity='.75'/%3E%3Crect x='41' y='45' width='10' height='7' rx='1.6' fill='%23fff'/%3E%3C/svg%3E"/>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
@@ -656,538 +715,13 @@ html:not(.dark) #tab-dashboard .dash-table tbody tr:hover{background:rgba(44,112
   border-left-color: var(--item-color) !important;
 }
 </style>
-<script>if (window.self !== window.top) window.parent.postMessage({ type: 'SANDBOX_DOCUMENT_START' }, '*');</script><script>
-    (function() {
-        var buffer = window.__base44_preview_native_failures;
-        if (!buffer || buffer.version !== 1 || !Array.isArray(buffer.entries)) {
-            buffer = { version: 1, entries: [], listenersInstalled: false };
-            window.__base44_preview_native_failures = buffer;
-        }
-        if (buffer.listenersInstalled) return;
-        function value(object, key) {
-            return object && typeof object[key] === 'string' ? object[key] : '';
-        }
-        function append(message) {
-            if (!message) return;
-            var normalizedMessage = String(message).slice(0, 5000);
-            for (var index = buffer.entries.length - 1; index >= 0; index--) {
-                var existing = buffer.entries[index];
-                if (existing && existing.level === 'error' && existing.message === normalizedMessage) {
-                    buffer.entries.splice(index, 1);
-                }
-            }
-            buffer.entries.push({
-                level: 'error',
-                message: normalizedMessage,
-                timestamp: Date.now()
-            });
-            if (buffer.entries.length > 100) {
-                buffer.entries.splice(0, buffer.entries.length - 100);
-            }
-        }
-        buffer.append = append;
-        function handleError(event) {
-            var target = event && event.target;
-            var tagName = value(target, 'tagName').toLowerCase() || 'window';
-            var isModule = tagName === 'script' && value(target, 'type').toLowerCase() === 'module';
-            var resourceType = isModule ? 'module' : tagName;
-            var url = value(target, 'src') || value(target, 'href') || value(event, 'filename');
-            var detail = value(event, 'message') || value(event && event.error, 'message');
-            var prefix = tagName === 'window' ? 'Native browser error' : 'Failed to load ' + resourceType;
-            append(prefix + (url ? ' ' + url : '') + (detail ? ': ' + detail : ''));
-        }
-        function rejectionReason(reason) {
-            if (typeof reason === 'string') return reason;
-            var message = value(reason, 'message');
-            if (message) return message;
-            try { return JSON.stringify(reason) || String(reason); }
-            catch (e) { return String(reason); }
-        }
-        function handleRejection(event) {
-            append('Unhandled promise rejection: ' + rejectionReason(event && event.reason));
-        }
-        function handleCspViolation(event) {
-            var blockedUri = value(event, 'blockedURI') || 'resource';
-            var directive = value(event, 'violatedDirective');
-            append('Content Security Policy blocked ' + blockedUri + (directive ? ' (' + directive + ')' : ''));
-        }
-        function overlayText(root, selector) {
-            var element = root && root.querySelector(selector);
-            return value(element, 'textContent').trim();
-        }
-        function captureViteOverlay(overlay) {
-            var root = overlay && overlay.shadowRoot;
-            var message = overlayText(root, '.message-body');
-            if (!message) return;
-            var plugin = overlayText(root, '.plugin');
-            var details = ['Vite build error: ' + (plugin ? plugin + ' ' : '') + message];
-            var file = overlayText(root, '.file');
-            var frame = overlayText(root, '.frame');
-            var stack = overlayText(root, '.stack');
-            if (file) details.push('File: ' + file);
-            if (frame) details.push(frame);
-            if (stack) details.push(stack);
-            append(details.join(String.fromCharCode(10)));
-        }
-        function captureViteOverlays(node) {
-            if (!node || node.nodeType !== 1) return;
-            if (node.matches && node.matches('vite-error-overlay')) captureViteOverlay(node);
-            if (!node.querySelectorAll) return;
-            var overlays = node.querySelectorAll('vite-error-overlay');
-            for (var index = 0; index < overlays.length; index++) captureViteOverlay(overlays[index]);
-        }
-        window.addEventListener('error', handleError, true);
-        window.addEventListener('unhandledrejection', handleRejection);
-        window.addEventListener('securitypolicyviolation', handleCspViolation);
-        if (typeof MutationObserver !== 'undefined' && document.documentElement) {
-            captureViteOverlays(document.documentElement);
-            new MutationObserver(function(records) {
-                for (var recordIndex = 0; recordIndex < records.length; recordIndex++) {
-                    var nodes = records[recordIndex].addedNodes;
-                    for (var nodeIndex = 0; nodeIndex < nodes.length; nodeIndex++) {
-                        captureViteOverlays(nodes[nodeIndex]);
-                    }
-                }
-            }).observe(document.documentElement, { childList: true, subtree: true });
-        }
-        buffer.listenersInstalled = true;
-    })();
-    </script><script data-preview-data-env-pin="true">
-    (function() {
-        var KEY = 'base44_data_env';
-        var APP_API_PATH = "/api/apps/6af70aba6de8b4c10b974613/";
-        var STORAGE_KEY = KEY + ':' + APP_API_PATH;
-        var API_ORIGINS = ["https://app.base44.com", "https://base44.app"].map(function(u) { return new URL(u).origin; });
-        var REQUEST_INIT_KEYS = [
-            'method', 'headers', 'credentials', 'mode', 'cache', 'redirect',
-            'referrer', 'referrerPolicy', 'integrity', 'keepalive', 'signal', 'priority',
-        ];
-        var env = new URLSearchParams(window.location.search).get(KEY);
-        try {
-            if (env === 'dev' || env === 'prod') sessionStorage.setItem(STORAGE_KEY, env);
-            else env = sessionStorage.getItem(STORAGE_KEY);
-        } catch (e) {}
-        if (env !== 'dev' && env !== 'prod') return;
-        function pin(url) {
-            try {
-                var u = new URL(url, window.location.href);
-                var sameOrigin = u.origin === window.location.origin;
-                if (!sameOrigin && API_ORIGINS.indexOf(u.origin) === -1) return url;
-                // The app's own server routes and TanStack server functions build
-                // their SDK client from this request, so they need the selection too.
-                var appServerPath = sameOrigin && (
-                    u.pathname.startsWith('/api/') || u.pathname.startsWith('/_serverFn/')
-                );
-                if (!appServerPath && !u.pathname.startsWith(APP_API_PATH)) return url;
-                // Privileged function/agent routes trust this app's Preview host,
-                // not a dev parameter sent to the generic SDK API origin.
-                if (u.origin !== window.location.origin && (
-                    u.pathname.startsWith(APP_API_PATH + 'functions/') ||
-                    u.pathname.startsWith(APP_API_PATH + 'agents/')
-                )) {
-                    u = new URL(u.pathname + u.search + u.hash, window.location.origin);
-                }
-                u.searchParams.set(KEY, env);
-                return u.toString();
-            } catch (e) { return url; }
-        }
-        var origFetch = window.fetch;
-        window.fetch = function(input, init) {
-            if (typeof input === 'string' || input instanceof URL) {
-                return origFetch.call(this, pin(String(input)), init);
-            }
-            if (!input || !input.url) return origFetch.call(this, input, init);
-            var pinned = pin(input.url);
-            if (pinned === input.url) return origFetch.call(this, input, init);
-            try {
-                input = new Request(input, init);
-                if (!input.keepalive || !input.body) {
-                    return origFetch.call(this, new Request(pinned, input));
-                }
-                // RequestInit exposes an existing body as a stream, which Fetch
-                // forbids with keepalive. Buffer only that case, after init overrides.
-                var self = this;
-                return input.blob().then(function(body) {
-                    var rebuilt = { body: body };
-                    REQUEST_INIT_KEYS.forEach(function(key) {
-                        if (input[key] !== undefined) rebuilt[key] = input[key];
-                    });
-                    return origFetch.call(self, new Request(pinned, rebuilt));
-                });
-            } catch (error) { return Promise.reject(error); }
-        };
-        var origOpen = XMLHttpRequest.prototype.open;
-        XMLHttpRequest.prototype.open = function(method, url) {
-            arguments[1] = pin(String(url));
-            return origOpen.apply(this, arguments);
-        };
-    })();
-    </script><script>
-    (function() {
-        var IGNORE = { SCRIPT: 1, STYLE: 1, LINK: 1, META: 1, NOSCRIPT: 1, TEMPLATE: 1 };
-        const fire = () => window.parent.postMessage({ type: 'IFRAME_CONTENT_READY' }, '*');
-        function check() {
-            var body = document.body;
-            if (!body) return false;
-            for (var idx = 0; idx < body.children.length; idx++) {
-                if (!IGNORE[body.children[idx].tagName]) return true;
-            }
-            return false;
-        }
-        function start() {
-            if (check()) { fire(); return; }
-            var observer = new MutationObserver(function() {
-                if (check()) { fire(); observer.disconnect(); }
-            });
-            observer.observe(document.documentElement, { childList: true, subtree: true });
-        }
-        if (document.body) { start(); }
-        else { document.addEventListener('DOMContentLoaded', start, { once: true }); }
-    })();
-    </script><script>
-    (function() {
-        if (window.self === window.top) return;
-        var APP_ID = "6af70aba6de8b4c10b974613";
-        var PREVIEW_TYPE = "sandbox";
-        var on404 = false;
-        var booted = false;
-        function detect() { return !!document.querySelector('[data-source-location^="PageNotFound:"]'); }
-        function payload() { return { app_id: APP_ID, preview_type: PREVIEW_TYPE, url_path: window.location.pathname }; }
-        function tick() {
-            var now = detect();
-            if (now && !on404) {
-                on404 = true;
-                window.parent.postMessage({ type: 'PREVIEW_PAGE_NOT_FOUND', payload: payload() }, '*');
-            } else if (!now && (on404 || !booted)) {
-                // On first tick of a fresh document, emit a cleared signal even when
-                // not currently on a 404 — the parent may have latched is404=true from
-                // a previous document at the same URL (e.g. after an iframe reload).
-                on404 = false;
-                window.parent.postMessage({ type: 'PREVIEW_PAGE_NOT_FOUND_CLEARED', payload: payload() }, '*');
-            }
-            booted = true;
-        }
-        function start() {
-            tick();
-            new MutationObserver(tick).observe(document.body, { childList: true, subtree: true });
-        }
-        if (document.body) { start(); }
-        else { document.addEventListener('DOMContentLoaded', start, { once: true }); }
-    })();
-    </script><script>
-    (function() {
-        if (window.self === window.top) return;
-        function fire() { window.parent.postMessage({ type: 'REACT_ROOT_HAS_CHILDREN' }, '*'); }
-        function findRoot() {
-            return document.getElementById('root')
-                || document.getElementById('app')
-                || document.querySelector('[data-react-root]');
-        }
-        // One-shot: wait for DOMContentLoaded (static HTML parsed by then, so the
-        // Base44 convention <div id="root"> is either present or not coming),
-        // observe the root's childList until the first element child appears,
-        // then fire and disconnect. No tree-wide subtree observer.
-        function start() {
-            var root = findRoot();
-            if (!root) return;
-            if (root.childElementCount > 0) { fire(); return; }
-            var obs = new MutationObserver(function() {
-                if (root.childElementCount > 0) { fire(); obs.disconnect(); }
-            });
-            obs.observe(root, { childList: true });
-        }
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', start, { once: true });
-        } else { start(); }
-    })();
-    </script><script>
-    (function() {
-        if (window.self === window.top) return;
-        function postUnsupported(reason) {
-            window.parent.postMessage({
-                type: 'IFRAME_FIRST_CONTENTFUL_PAINT_UNSUPPORTED',
-                payload: { reason: reason, userAgent: navigator.userAgent }
-            }, '*');
-        }
-        if (typeof PerformanceObserver === 'undefined') {
-            postUnsupported('no_performance_observer');
-            return;
-        }
-        try {
-            var obs = new PerformanceObserver(function(list) {
-                var entries = list.getEntries();
-                for (var i = 0; i < entries.length; i++) {
-                    if (entries[i].name === 'first-contentful-paint') {
-                        obs.disconnect();
-                        window.parent.postMessage({ type: 'IFRAME_FIRST_CONTENTFUL_PAINT' }, '*');
-                        return;
-                    }
-                }
-            });
-            obs.observe({ type: 'paint', buffered: true });
-        } catch (e) {
-            postUnsupported('observe_threw:' + (e && e.name ? e.name : 'Error'));
-        }
-    })();
-    </script><script>
-    (function() {
-        if (window.self === window.top) return;
-        var APP_ID = "6af70aba6de8b4c10b974613";
-        var PREVIEW_TYPE = "sandbox";
-        var DEPS_PATH = '/node_modules/.vite/deps/';
-        var fired = false;
-        function isViteDep(url) {
-            return typeof url === 'string' && url.indexOf(DEPS_PATH) !== -1;
-        }
-        var confirmed = {};
-        function looksFailed(entry) {
-            // HTTP failure status (Chrome 109+).
-            if (entry.responseStatus && entry.responseStatus >= 400) return true;
-            // Aborted / blocked / network-error: request ran, nothing decoded.
-            // decodedBodySize === 0 distinguishes from cache hits (Safari has no
-            // deliveryType, so we can't rely on it to exclude cached responses).
-            return entry.transferSize === 0
-                && entry.decodedBodySize === 0
-                && entry.duration > 0
-                && entry.responseEnd > 0;
-        }
-        // WebKit has no responseStatus and zeroes every size on a cache hit, so the
-        // size heuristic alone flags every cached dep. Re-ask the server instead; a
-        // rejected HEAD proves nothing, WebKit aborts it when the frame navigates away.
-        function confirmThenReport(entry) {
-            if (confirmed[entry.name]) return;
-            confirmed[entry.name] = true;
-            fetch(entry.name, { method: 'HEAD', cache: 'no-store' }).then(function(res) {
-                var type = res.headers.get('content-type') || '';
-                if (res.status >= 400 || type.indexOf('text/html') !== -1) report(entry, res.status);
-            }, function() {});
-        }
-        function report(entry, confirmedStatus) {
-            if (fired) return;
-            fired = true;
-            var nativeBuffer = window.__base44_preview_native_failures;
-            if (nativeBuffer && typeof nativeBuffer.append === 'function') {
-                nativeBuffer.append('Failed to load module ' + entry.name);
-            }
-            window.parent.postMessage({
-                type: 'SANDBOX_VITE_DEPS_404',
-                payload: {
-                    app_id: APP_ID,
-                    preview_type: PREVIEW_TYPE,
-                    url: entry.name,
-                    initiator_type: entry.initiatorType,
-                    response_status: entry.responseStatus || confirmedStatus
-                }
-            }, '*');
-        }
-        new PerformanceObserver(function(list) {
-            if (fired) return;
-            var entries = list.getEntries();
-            for (var i = 0; i < entries.length; i++) {
-                if (isViteDep(entries[i].name) && looksFailed(entries[i])) {
-                    if ('responseStatus' in entries[i]) {
-                        report(entries[i]);
-                        return;
-                    }
-                    confirmThenReport(entries[i]);
-                }
-            }
-        }).observe({ type: 'resource', buffered: true });
-    })();
-    </script><script>
-    (function() {
-        if (typeof PerformanceObserver === 'undefined') return;
-        var reported = {};
-        // Only the app's own module trees may put an error over the preview. A page
-        // can load an optional classic script (analytics, a widget) that fails while
-        // the app renders perfectly well; that must not read as broken app code.
-        // Recording is deliberately wider than reporting — the console buffer keeps
-        // every failed module for diagnostics.
-        function isAppModule(path) {
-            return path.indexOf('/src/') === 0 || path.indexOf('/base44/') === 0;
-        }
-        function modulePath(url) {
-            try {
-                var path = new URL(url, window.location.href).pathname;
-                // The bridge probes this standard SDK path opportunistically;
-                // legacy/custom apps are allowed not to provide it.
-                if (path === '/src/api/base44Client.js') return '';
-                if (path.indexOf('/node_modules/.vite/deps/') !== -1) return '';
-                return /[.](?:[cm]?[jt]sx?)$/i.test(path) ? path : '';
-            } catch (e) {
-                return '';
-            }
-        }
-        new PerformanceObserver(function(list) {
-            var entries = list.getEntries();
-            for (var index = 0; index < entries.length; index++) {
-                var entry = entries[index];
-                if (entry.initiatorType !== 'script') continue;
-                var status = entry.responseStatus;
-                if (!status) continue;
-                var path = modulePath(entry.name);
-                if (!path) continue;
-                if (status < 400) {
-                    // Recovered (an HMR fix re-requests it). Forget it, or breaking the
-                    // same path again later this document would be silently suppressed.
-                    delete reported[path];
-                    continue;
-                }
-                var message = status === 404
-                    ? 'Module not found: ' + path
-                    : 'Module failed to load (' + status + '): ' + path;
-                var buffer = window.__base44_preview_native_failures;
-                if (buffer && typeof buffer.append === 'function') buffer.append(message);
-                if (!isAppModule(path) || reported[path] || window.self === window.top) continue;
-                reported[path] = true;
-                window.parent.postMessage({
-                    type: 'SANDBOX_MODULE_LOAD_FAILED',
-                    payload: { path: path, status: status, message: message }
-                }, '*');
-            }
-        }).observe({ type: 'resource', buffered: true });
-    })();
-    </script><script>
-    (function() {
-        if (window.self === window.top) return;
-        if (typeof performance === 'undefined' || typeof performance.getEntriesByType !== 'function') return;
-        var DEPS_PATH = '/node_modules/.vite/deps/';
-        var QUIESCENCE_MS = 1500;
-        var POLL_MS = 500;
-        var fired = false;
-        var intervalId = setInterval(function() {
-            if (fired) return;
-            var entries = performance.getEntriesByType('resource');
-            var lastDepEnd = 0;
-            for (var i = 0; i < entries.length; i++) {
-                if (entries[i].name.indexOf(DEPS_PATH) === -1) continue;
-                if (entries[i].responseEnd > lastDepEnd) lastDepEnd = entries[i].responseEnd;
-            }
-            if (lastDepEnd === 0) return;
-            if (performance.now() - lastDepEnd >= QUIESCENCE_MS) {
-                fired = true;
-                clearInterval(intervalId);
-                window.parent.postMessage({ type: 'IFRAME_VITE_DEPS_SETTLED' }, '*');
-            }
-        }, POLL_MS);
-    })();
-    </script><script>
-        window.__base44_sdk_attach = import("/src/api/base44Client.js").then(({ base44 }) => {
-            if (base44) {
-                Object.defineProperty(window, "base44_sdk", {
-                    value: base44,
-                    writable: false,
-                    configurable: true
-                });
-            }
-        }).catch((e) => {
-            // Some legacy/custom apps may not have the standard client module.
-            // Leave window.base44_sdk undefined; PreviewLens can fall back to UI/network checks.
-            window.parent.postMessage({ type: "PREVIEW_LENS_SDK_ATTACH_FAILED", error: String(e) }, "*");
-        });
-        </script><script type="module">
-        try {
-            const { createHotContext } = await import("/@vite/client");
-            const hot = createHotContext("/__builder-bridge-hmr");
-            const previewFEVersion = Number(new URLSearchParams(window.location.search).get("previewFE_version")) || 0;
-        
-            let wsOpenedAt = 0;
-            hot.on("vite:ws:connect", () => {
-                wsOpenedAt = Date.now();
-                window.parent.postMessage({ type: "SANDBOX_WS_CONNECT" }, "*");
-            });
-            hot.on("vite:ws:disconnect", () => {
-                let sw = null;
-                try { sw = navigator.serviceWorker; } catch (e) {}  // SecurityError where storage is denied
-                const staleClient = Date.now() - wsOpenedAt < 1000 && !!(sw && sw.controller);
-                window.parent.postMessage({ type: "SANDBOX_WS_DISCONNECT", payload: { stale_client: staleClient } }, "*");
-                if (!staleClient) return;
-                // Vite awaits this before it reloads, so the reload fetches fresh modules.
-                return Promise.race([
-                    Promise.all([
-                        sw.getRegistrations().then((regs) => Promise.all(regs.map((reg) => reg.unregister()))),
-                        caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))),
-                    ]),
-                    new Promise((resolve) => setTimeout(resolve, 2000)),
-                ]).catch(() => {});
-            });
-    
-            hot.on("vite:error", (payload) => {
-                const err = payload && payload.err && typeof payload.err === "object" ? payload.err : {};
-                const message = typeof err.message === "string" ? err.message : "Unknown build error";
-                const plugin = typeof err.plugin === "string" ? `[plugin:${err.plugin}] ` : "";
-                const details = [`Vite build error: ${plugin}${message}`];
-                const loc = err.loc && typeof err.loc === "object" ? err.loc : null;
-                let file = loc && typeof loc.file === "string"
-                    ? loc.file
-                    : (typeof err.id === "string" ? err.id : "");
-                if (file) {
-                    file = file.split("?")[0];
-                    if (loc && Number.isFinite(loc.line) && Number.isFinite(loc.column)) {
-                        file += `:${loc.line}:${loc.column}`;
-                    }
-                    details.push(`File: ${file}`);
-                }
-                if (typeof err.frame === "string" && err.frame.trim()) details.push(err.frame.trim());
-                if (typeof err.stack === "string" && err.stack.trim()) details.push(err.stack.trim());
-
-                const nativeBuffer = window.__base44_preview_native_failures;
-                if (!nativeBuffer || typeof nativeBuffer.append !== "function") return;
-                nativeBuffer.append(details.join(String.fromCharCode(10)));
-            });
-    
-            let hotUpdateStartedAt = 0;
-            hot.on("vite:beforeUpdate", () => { hotUpdateStartedAt = performance.now(); });
-            hot.on("vite:afterUpdate", () => {
-                const startedAt = hotUpdateStartedAt;
-                requestAnimationFrame(() => {
-                    window.parent.postMessage({ type: "SANDBOX_HOT_UPDATE_PAINTED", duration_ms: performance.now() - startedAt }, "*");
-                });
-            });
-    
-            // The pending promise holds Vite's pageReload (it awaits listeners) so the parent swaps a fresh iframe; an editor that doesn't announce previewFE_version falls back to today's in-place reload.
-            hot.on("vite:beforeFullReload", () => {
-                window.parent.postMessage({ type: "sandbox:beforeFullReload" }, "*");
-                if (previewFEVersion > 0) return new Promise(() => {});
-            });
-        } catch (e) {
-            window.parent.postMessage({ type: "SANDBOX_WS_ATTACH_FAILED", error: String(e) }, "*");
-        }
-        </script><script>
-        (function() {
-            var INTERVAL_MS = 30 * 60 * 1000;
-            var last = Date.now();
-            function renew() {
-                last = Date.now();
-                fetch("/base44-preview-session", {
-                    credentials: 'same-origin', cache: 'no-store', headers: {"x-base44-preview-keepalive": "1"}
-                }).then(function(r) {
-                    if ((r.status === 401 || r.status === 403) && window.self !== window.top) window.parent.postMessage({ type: 'preview:requestRefresh' }, '*');
-                }).catch(function() {});
-            }
-            setInterval(renew, INTERVAL_MS);
-            document.addEventListener('visibilitychange', function() {
-                if (document.visibilityState === 'visible' && Date.now() - last >= INTERVAL_MS) renew();
-            });
-        })();
-        </script><script>
-    (function() {
-        if (window.self === window.top) return;
-        var lastUrl = window.location.href;
-        function notify() {
-            var url = window.location.href;
-            if (url === lastUrl) return;
-            lastUrl = url;
-            window.parent.postMessage({ type: 'APP_CHANGED_URL', url: url }, '*');
-        }
-        var origPush = history.pushState.bind(history);
-        history.pushState = function() { origPush.apply(history, arguments); notify(); };
-        var origReplace = history.replaceState.bind(history);
-        history.replaceState = function() { origReplace.apply(history, arguments); notify(); };
-        window.addEventListener('popstate', notify);
-        window.parent.postMessage({ type: 'APP_CHANGED_URL', url: window.location.href }, '*');
-    })();
-    </script><script defer src="/__l5e/events.js" data-artifact-kind="live_preview" data-artifact-id="1c9524a6f783a3e0a6ea89994f57d4f78201fbb0" data-commit-sha="1c9524a6f783a3e0a6ea89994f57d4f78201fbb0" data-context-token="v1.eyJwcm9qZWN0X2lkIjoibG92cF8zamhqeTQ3Y2t4OHk1ODBoYjBybXBqZ2plaCIsImFydGlmYWN0X2tpbmQiOiJsaXZlX3ByZXZpZXciLCJhcnRpZmFjdF9pZCI6IjFjOTUyNGE2Zjc4M2EzZTBhNmVhODk5OTRmNTdkNGY3ODIwMWZiYjAiLCJjb21taXRfc2hhIjoiMWM5NTI0YTZmNzgzYTNlMGE2ZWE4OTk5NGY1N2Q0Zjc4MjAxZmJiMCIsImV4cCI6MTc5NTAyODI2MX0.EPOBD-sh2iKbQy1J7YGemeqNtV3awCeQFVXKiJc8lVI" data-consent="1"></script><script defer src="/__l5e/events.b979ee024b15adfd.js" data-artifact-kind="live_preview" data-artifact-id="9913ea454ea6e8b72c7470566e3c5a6fdc645821" data-commit-sha="9913ea454ea6e8b72c7470566e3c5a6fdc645821" data-context-token="v1.eyJwcm9qZWN0X2lkIjoibG92cF83dGY5dGZqcDVoODFtYndua3Y5eTgza2ZzeSIsImFydGlmYWN0X2tpbmQiOiJsaXZlX3ByZXZpZXciLCJhcnRpZmFjdF9pZCI6Ijk5MTNlYTQ1NGVhNmU4YjcyYzc0NzA1NjZlM2M1YTZmZGM2NDU4MjEiLCJjb21taXRfc2hhIjoiOTkxM2VhNDU0ZWE2ZThiNzJjNzQ3MDU2NmUzYzVhNmZkYzY0NTgyMSIsImV4cCI6MTc5NTAyODkwOX0.pG4Gak9ydPNZOm_8NURaxNfTcKpg_RVAlgnHCk1Lwa8" data-consent="1"></script></head>
+<style id="mx-hover-fix">
+html body #mx-pan,html body #mx-pan *,html body #mx-pan:hover,html body #mx-pan *:hover,
+html body #tab-estoque .workspace-block>div:has(#mx-pan),html body #tab-estoque .workspace-block>div:has(#mx-pan):hover{transform:none!important;translate:none!important;scale:none!important;animation:none!important}
+html body #mx-pan .mx-k{transition:box-shadow .2s ease,border-color .2s ease,background-color .2s ease!important;will-change:auto!important}
+html body #mx-pan .mx-k:hover{box-shadow:0 6px 18px -8px rgba(15,40,80,.28)!important;border-color:var(--k)!important}
+html body #mx-pan button,html body #mx-pan a{transition:background-color .2s ease,color .2s ease,box-shadow .2s ease!important}
+</style></head>
 <body class="console-shell bg-[#f3f5f8] dark:bg-[#0f1218] text-slate-800 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-300">
 <aside aria-label="Navegação principal" class="console-sidebar" id="app-sidebar">
 <button aria-label="Expandir ou recolher menu" class="console-logo" onclick="toggleSidebar()" title="Expandir ou recolher menu"><i class="fa-solid fa-kitchen-set"></i></button>
@@ -1477,7 +1011,7 @@ function status(v){const h=new Date();h.setHours(0,0,0,0);const d=Math.ceil((new
  return{key:'OK',texto:'OK',classe:'bg-blue-500/10 text-blue-500 border border-blue-500/20',dias:d};}
 const brl=n=>n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const dt=s=>s?s.split('-').reverse().join('/'):'';
-const numQ=v=>{const n=parseFloat(String(v==null?'':v).replace(',','.'));return isNaN(n)?0:n;};
+const numQ=(v=>{if(typeof v==='number')return isFinite(v)?v:0;let s=String(v==null?'':v).trim().replace(/\s/g,'');if(!s)return 0;if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');const m=s.match(/-?\d+(\.\d+)?/);const n=m?parseFloat(m[0]):NaN;return isFinite(n)?n:0;});
 const fmtQ=v=>{const n=numQ(v);return Number.isInteger(n)?String(n):n.toLocaleString('pt-BR',{maximumFractionDigits:3});};
 const itemDisponivel=i=>numQ(i.qtd)>0&&status(i.validade).key!=='VENCIDO';
 const estoqueDisponivel=()=>estoque.filter(itemDisponivel);
@@ -1494,7 +1028,7 @@ function atualizarStats(){
 }
 
 const inputClsForm='w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-sm';
-const CATEGORIAS=['CONFEITARIA','LICOR - APERITIVO','VINHOS','DESTILADO','MERCEARIA','LIMPEZA','VARIADOS','SECOS','DESCARTAVEL','BEBIDAS','LATICÍNIOS','PROCESSADOS','PROTEÍNAS','CAFÉS'];
+const CATEGORIAS=['CONFEITARIA','LICOR - APERITIVO','VINHOS','DESTILADO','MERCEARIA','LIMPEZA','VARIADOS','SECOS','DESCARTAVEL','BEBIDAS','LATICÍNIOS','PROCESSADOS','PROTEÍNAS','CAFÉS','MANUTENÇÃO'];
 const esc=v=>String(v==null?'':v).replace(/"/g,'&quot;');
 const hoje=()=>new Date().toISOString().slice(0,10);
 
@@ -3860,13 +3394,7 @@ window.montarRelatorioHTML=function(tipo){
   const cab='<div class="cab"><div><h1>'+T[0]+'</h1><p>'+E(cfg.unidade||'')+' · Cozinha pedagógica — controle de insumos'+(resp?' · Responsável: '+resp:'')+'</p></div><div class="dt"><b>'+agora.toLocaleDateString('pt-BR')+'</b>emitido às '+agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</div></div>';
   const ass='<div class="ass"><div class="l">'+(resp||'Responsável pelo estoque')+'<br><small>'+E(cfg.unidade||'')+'</small></div></div>';
   return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>'+T[0]+' — '+agora.toLocaleDateString('pt-BR')+'</title><style>'+CSS+'</style></head><body>'+
-    (cfg.timbrado?'<div class="fundo"><img src="'+cfg.timbrado+'"></div>':'')+'<table class="pg"><thead><tr><td></td></tr></thead><tfoot><tr><td></td></tr></tfoot><tbody><tr><td><div class="miolo">'+cab+T[1](d)+ass+'</div></td></tr></tbody></table><style id="mx-hover-fix">
-html body #mx-pan,html body #mx-pan *,html body #mx-pan:hover,html body #mx-pan *:hover,
-html body #tab-estoque .workspace-block>div:has(#mx-pan),html body #tab-estoque .workspace-block>div:has(#mx-pan):hover{transform:none!important;translate:none!important;scale:none!important;animation:none!important}
-html body #mx-pan .mx-k{transition:box-shadow .2s ease,border-color .2s ease,background-color .2s ease!important;will-change:auto!important}
-html body #mx-pan .mx-k:hover{box-shadow:0 6px 18px -8px rgba(15,40,80,.28)!important;border-color:var(--k)!important}
-html body #mx-pan button,html body #mx-pan a{transition:background-color .2s ease,color .2s ease,box-shadow .2s ease!important}
-</style></body></html>';
+    (cfg.timbrado?'<div class="fundo"><img src="'+cfg.timbrado+'"></div>':'')+'<table class="pg"><thead><tr><td></td></tr></thead><tfoot><tr><td></td></tr></tfoot><tbody><tr><td><div class="miolo">'+cab+T[1](d)+ass+'</div></td></tr></tbody></table></body></html>';
 };
 const antigo=window.gerarPDF;
 window.gerarPDF=function(tipo){
@@ -4862,6 +4390,49 @@ html.dark .v46-seg{background:var(--c-panel,#252a2e)}html.dark .v46-seg button{c
  position();
 })();
 </script>
+<style id="req-somente-documento">
+html body #modal-box#modal-box#modal-box #rq-linhas#rq-linhas .rq-linha,html body #modal-box#modal-box#modal-box .rq-cab-vl{grid-template-columns:minmax(0,1fr) 56px 96px 116px 116px 26px!important}
+html body #modal-box#modal-box#modal-box #rq-linhas#rq-linhas .rq-linha>.rq-nec,html body #modal-box#modal-box#modal-box #rq-linhas#rq-linhas .rq-linha>.rq-est{display:none!important}
+html body #modal-box#modal-box#modal-box #rq-linhas#rq-linhas .rq-linha>.rq-req{grid-column:3!important}
+html body #modal-box#modal-box#modal-box #rq-linhas#rq-linhas .rq-linha>.rq-vl{grid-column:4!important}
+html body #modal-box#modal-box#modal-box #rq-linhas#rq-linhas .rq-linha>.rq-tot-ln{grid-column:5!important}
+html body #modal-box#modal-box#modal-box #rq-linhas#rq-linhas .rq-linha>button{grid-column:6!important}
+html body #modal-box#modal-box#modal-box .rq-cab-vl>*{grid-column:auto!important;text-align:right}
+html body #modal-box#modal-box#modal-box .rq-cab-vl>*:first-child{text-align:left}html body #modal-box#modal-box#modal-box .rq-cab-vl>*:nth-child(2){text-align:center}
+</style>
+<script id="req-somente-documento-js">
+/* Requisições/RDM: só item, quantidade do documento e valor unitário. Sem relação com o estoque atual. */
+(function(){
+ function ajustaLinha(row,origem){
+  var nec=row.querySelector('.rq-nec'),est=row.querySelector('.rq-est'),req=row.querySelector('.rq-req');if(!req)return;
+  if(est)est.value=0;
+  if(origem==='req'){if(nec)nec.value=req.value;}
+  else if(nec&&nec.value!==''&&req.value!==nec.value){req.value=nec.value;}
+ }
+ function cab(){
+  var h=document.querySelector('#modal-box .rq-cab-vl');
+  if(h&&h.dataset.doc!=='1'){h.dataset.doc='1';h.innerHTML='<div>Item</div><div>Un.</div><div>Quantidade</div><div>Valor unitário</div><div>Total</div><div></div>';}
+ }
+ function tudo(){document.querySelectorAll('#rq-linhas .rq-linha').forEach(function(r){if(!r.dataset.doc){r.dataset.doc='1';ajustaLinha(r);var q=r.querySelector('.rq-req');q&&q.dispatchEvent(new Event('input',{bubbles:true}));}});cab();}
+ document.addEventListener('input',function(e){var row=e.target.closest&&e.target.closest('#rq-linhas .rq-linha');if(!row)return;
+  ajustaLinha(row,e.target.classList.contains('rq-req')?'req':'');},false);
+ var pend=false;new MutationObserver(function(){if(pend)return;pend=true;requestAnimationFrame(function(){pend=false;tudo();});}).observe(document.body,{childList:true,subtree:true});
+ function corrige(){
+  try{var L=window.requisicoes||[],mud=false;
+   L.forEach(function(r){(r.itens||[]).forEach(function(i){
+    if(i.estoque){i.estoque=0;mud=true;}
+    if(i.recebido==null&&Number(i.necessario||0)>Number(i.requisitar||0)){i.requisitar=Number(i.necessario);mud=true;}
+   });});
+   if(mud&&typeof salvarDados==='function')salvarDados();
+  }catch(e){console.error(e);}
+ }
+ var sv=window.salvarRequisicao;
+ if(typeof sv==='function')window.salvarRequisicao=function(){var r=sv.apply(this,arguments);corrige();return r;};
+ var sl=window.salvarImportacaoLote;
+ if(typeof sl==='function')window.salvarImportacaoLote=function(){var r=sl.apply(this,arguments);Promise.resolve(r).then(function(){setTimeout(corrige,200);});return r;};
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(corrige,500);});else setTimeout(corrige,500);
+})();
+</script>
 </body>
 </html>
 <style id="sirius-mobile-nav-fix">
@@ -5470,9 +5041,11 @@ window.parseRDM=function(txt){
 };
 const num=v=>Number(String(v||'').replace(/\./g,'').replace(',','.'))||1;
 function preencher(d){
-  const n=document.getElementById('rq-num');if(n&&d.num){n.value=d.num;n.dispatchEvent(new Event('input'));}
+  const n=document.getElementById('rq-num');if(n&&d.num){n.value=(window.chaveDocReq?window.chaveDocReq(d):d.num);n.dispatchEvent(new Event('input'));}
   const obs=document.getElementById('rq-obs');
-  if(obs&&!obs.value.trim()){const ex=[d.obs,d.requisitante&&('Requisitante: '+d.requisitante),d.setor&&('Setor: '+d.setor),d.data&&('Data RDM: '+d.data)].filter(Boolean).join(' · ');obs.value=ex;}
+  /* cada documento é individual: substitui o que havia no formulário em vez de acumular */
+  if(d.itens.length)document.querySelectorAll('#rq-linhas .rq-linha').forEach(x=>x.remove());
+  if(obs){const ex=[d.obs,d.requisitante&&('Requisitante: '+d.requisitante),d.setor&&('Setor: '+d.setor),d.data&&((d.tipoDoc==='rdm'?'Data RDM: ':'Data: ')+d.data)].filter(Boolean).join(' · ');obs.value=ex;}
   d.itens.forEach(it=>{const q=num(it.qtd);addLinhaReq({nome:it.descricao||('Cód. '+it.cod),unidade:it.unidade||'',necessario:q,requisitar:q});});
   if(d.itens.length)document.querySelectorAll('.rq-linha').forEach(row=>{const nm=row.querySelector('.rq-nome');if(nm&&!nm.value.trim()&&document.querySelectorAll('.rq-linha').length>1)row.remove();});
   document.querySelectorAll('.rq-linha .rq-nome').forEach(i=>i.dispatchEvent(new Event('input',{bubbles:true})));
@@ -8115,7 +7688,7 @@ html.dark .v110-kpis div,html.dark .v110-flow{border-color:rgba(255,255,255,.08)
 (function(){
  const $=id=>document.getElementById(id);
  const H=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
- const N=v=>{const n=parseFloat(String(v??'').replace(',','.'));return isNaN(n)?0:n;};
+ const N=(v=>{if(typeof v==='number')return isFinite(v)?v:0;let s=String(v==null?'':v).trim().replace(/\s/g,'');if(!s)return 0;if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');const m=s.match(/-?\d+(\.\d+)?/);const n=m?parseFloat(m[0]):NaN;return isFinite(n)?n:0;});
  const F=n=>Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:3});
  const DIAS=['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
  const CURTO=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
@@ -8407,7 +7980,7 @@ html.dark .v110-kpis div,html.dark .v110-flow{border-color:rgba(255,255,255,.08)
 <script id="v115-ambientes-js">
 (function(){
  const H=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const N=v=>{const n=parseFloat(String(v??'').replace(',','.'));return isNaN(n)?0:n;};
+ const N=(v=>{if(typeof v==='number')return isFinite(v)?v:0;let s=String(v==null?'':v).trim().replace(/\s/g,'');if(!s)return 0;if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');const m=s.match(/-?\d+(\.\d+)?/);const n=m?parseFloat(m[0]):NaN;return isFinite(n)?n:0;});
  const F=n=>Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
  const TIPOS=[
   {re:/\bBAR\b|DRINK|COQUETEL|BEBIDA|SOMMELIER|VINHO|BARIST|CAF[EÉ]/i,nome:'Bar',ico:'fa-martini-glass-citrus',g:'linear-gradient(135deg,#2b1055,#7a2e8e 60%,#d76d77)',c:'#7a2e8e'},
@@ -8533,19 +8106,9 @@ document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){do
 <script id="v116-logic">
 (function(){
  /* ---------- Bebidas alcoólicas: sem validade ---------- */
- var RE=/vinho|espumante|champa[gn]|prosecco|frisante|\bcava\b|cacha[çc]a|whisk|u[íi]sque|bourbon|licor|vodka|v[óo]dka|\brum\b|\bgin\b|tequila|mezcal|conhaque|brandy|cognac|aguardente|absinto|vermute|vermouth|campari|bitter|pisco|saqu[êe]|\bsake\b|steinh[äa]ger|grappa|j[äa]germeister|amaretto|cointreau|porto\b|jerez|marsala|xerez|destilad|cerveja|\bchopp?\b|\bgim\b|descart[áa]ve|embalage|guardanapo|copo\s|copos|prato desc|talher desc|garfo desc|faca desc|colher desc|canudo|palito|papel alum|filme pvc|pl[áa]stico filme|saco\s|sacola|marmitex|bandeja desc|touca|luva desc|isopor|papel toalha|papel higi/i;
- var RECAT=/descart|embalag|bebida|alco[óo]l|destil/i;
- var sem=window.semValidade116=function(n,c){var x=String(n||'');if(c&&RECAT.test(String(c)))return true;return RE.test(x)&&!/vinagre|refrigerante|zero [áa]lcool|sem [áa]lcool/i.test(x);};
- var antes=window.ehBebidaSemValidade;
- window.ehBebidaSemValidade=function(n,c){return sem(n)||(antes?antes(n,c):false);};
- /* status: sem data = sem validade (não entra em vencidos) */
- try{var stAnt=status;window.status=function(v){if(!v)return{key:'OK',texto:'SEM VALIDADE',classe:'bg-purple-500/10 text-purple-600 border border-purple-500/20',dias:99999};return stAnt(v);};}catch(e){}
- function limpar(){var mud=false;
-  try{(estoque||[]).forEach(function(i){if(i&&i.validade&&sem(i.nome)){i.validade='';mud=true;}});}catch(e){}
-  try{(cursoItens||[]).forEach(function(i){if(i&&i.validade&&sem(i.nome)){i.validade='';mud=true;}});}catch(e){}
-  return mud;}
- if(typeof salvarDados==='function'){var sd=salvarDados;window.salvarDados=salvarDados=function(){limpar();return sd.apply(this,arguments);};}
- if(limpar()){try{salvarDados();}catch(e){}try{renderEstoque();}catch(e){}try{renderPainel();}catch(e){}}
+ var sem=window.semValidade116=window.ModeskExpiry.exempt;
+ window.ehBebidaSemValidade=sem;
+ try{var stAnt=status;window.status=function(v){if(!v)return{key:'OK',texto:'SEM VALIDADE',classe:'bg-slate-100 text-slate-600',dias:99999};return stAnt(v);};}catch(e){}
  function nomeDe(inp){
   var b=inp.closest('[data-k]');if(b){var p=b.querySelector('.q84-nome');return p?p.textContent:'';}
   var esc=inp.closest('tr')||inp.closest('[class*=linha]')||inp.closest('form')||document.getElementById('modal-box');
@@ -8557,12 +8120,18 @@ document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){do
   var box=document.getElementById('modal-box');if(!box)return;
   box.querySelectorAll('input[type=date]').forEach(function(inp){
    var id=(inp.id||'')+' '+(inp.name||'')+' '+(inp.className||'');if(!/val/i.test(id)||/q83-data/.test(id))return;
-   var _c=inp.closest('.q83-item'),_cs=_c&&_c.querySelector('.c-t'),isento=sem(nomeDe(inp),_cs?_cs.value:''),pill=inp.nextElementSibling&&inp.nextElementSibling.classList.contains('v116-semval')?inp.nextElementSibling:null;
+   var row=inp.closest('.q83-item')||inp.closest('#lote-itens>div')||inp.closest('[data-rc]');
+   var cat=row&&row.querySelector('.c-t,.rc-cat');
+   var category=cat?cat.value:row&&row.dataset.cat||((document.getElementById('lote-cat')||document.getElementById('cad-categoria')||{}).value||'');
+   var name=row&&row.querySelector('.lote-nome');
+   var isento=sem(name?name.value:nomeDe(inp),category);
+   var pill=inp.nextElementSibling&&inp.nextElementSibling.classList.contains('v116-semval')?inp.nextElementSibling:null;
+   inp.required=!isento;
+   inp.classList.remove('v116-hide');
    if(isento){
-    if(inp.value)inp.value='';inp.required=false;inp.classList.add('v116-hide');
-    if(!pill){pill=document.createElement('div');pill.className='v116-semval';pill.innerHTML='<i class="fa-solid fa-wine-bottle"></i><span>Sem validade<small>Produto isento de vencimento</small></span>';inp.insertAdjacentElement('afterend',pill);}
-    var it=inp.closest('.q83-item');if(it)it.classList.add('v116-bebida');
-   }else{inp.classList.remove('v116-hide');if(pill)pill.remove();}
+    if(!pill){pill=document.createElement('div');pill.className='v116-semval';pill.textContent='Validade opcional';inp.insertAdjacentElement('afterend',pill);}
+   }else{if(pill)pill.remove();}
+   if(row)row.classList.toggle('v116-bebida',isento);
   });
   /* barra de progresso da conferência */
   var sum=box.querySelector('.q83-summary');
@@ -8881,8 +8450,10 @@ document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){do
  function agrupar(){
   grupos={};
   arquivos.filter(a=>a.status==='ok').forEach(a=>{
-   const d=a.dados;const n=(d.num||'').trim()||('SEM-NUM-'+a.idx);
-   const g=grupos[n]||(grupos[n]={num:n,semNumero:!d.num,data:d.data,setor:d.setor,requisitante:d.requisitante,obs:d.obs,arquivos:[],itens:[]});
+   const d=a.dados;const n=(d.num||'').trim()?(window.chaveDocReq?window.chaveDocReq(d,grupos):d.num.trim()):('SEM-NUM-'+a.idx);
+   /* cada documento é individual: o mesmo arquivo enviado duas vezes não soma itens */
+   if(grupos[n]){grupos[n].arquivos.push(a.nome+' (repetido — ignorado)');return;}
+   const g=grupos[n]=({num:n,semNumero:!d.num,data:d.data,setor:d.setor,requisitante:d.requisitante,obs:d.obs,categoria:d.categoria,tipoDoc:d.tipoDoc,arquivos:[],itens:[]});
    g.arquivos.push(a.nome);
    d.itens.forEach(it=>{const nome=it.descricao||('Cód. '+it.cod);const c=categorizarInsumo(nome);
     g.itens.push({nome,cod:it.cod,unidade:it.unidade||'',qtd:num(it.qtd),categoria:c.id,validade:'',lote:''});});
@@ -8982,7 +8553,7 @@ document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){do
   if(falta){msg.innerHTML='<i class="fa-solid fa-triangle-exclamation"></i> Informe a data de validade e o lote dos itens de bebidas e alimentícios (campos destacados).';const p=document.querySelector('#l118-grupos .miss');p&&p.focus();return;}
   msg.textContent='';
   novos.forEach(g=>{
-   const itens=g.itens.map(it=>{const r=catPor(it.categoria).regra;const e=typeof estoqueDoProduto==='function'?estoqueDoProduto(it.nome):0;
+   const itens=g.itens.map(it=>{const r=catPor(it.categoria).regra;const e=0; /* importação não consulta o estoque atual */
     return {nome:it.nome,unidade:it.unidade,necessario:it.qtd,estoque:e,requisitar:it.qtd,recebido:null,
      categoria:it.categoria,categoriaNome:catPor(it.categoria).nome,regraValidade:r,
      validade:r==='na'?'N/A':(it.validade||''),lote:r==='na'?'N/A':(it.lote||''),validadeAplicavel:r!=='na'};});
@@ -10040,9 +9611,9 @@ Element.prototype.appendChild=function(n){var r=ap.apply(this,arguments);try{if(
   const am=window.abrirModal;window.abrirModal=html=>{box.innerHTML=html;};
   try{origAbrir();}finally{window.abrirModal=am;}
   const h=box.querySelector('h3');if(h)h.innerHTML='<i class="fa-solid fa-file-import" style="color:var(--c-lime)"></i> Importar requisições e RDM';
-  const sub=box.querySelector('.sub');if(sub)sub.textContent='Único local de importação. Envie um ou vários PDFs/fotos de Requisição Interna ou RDM: os itens viram requisições e, se marcado, também dão entrada no estoque da Despensa.';
+  const sub=box.querySelector('.sub');if(sub)sub.textContent='Único local de importação. Envie um ou vários PDFs/fotos de Requisição Interna ou RDM: os itens viram requisições. Eles só entram no estoque após a conferência.';
   const foot=box.querySelector('.l118-foot');
-  if(foot){foot.insertAdjacentHTML('beforebegin','<label class="v14-desp"><input type="checkbox" id="v14-desp" checked> Dar entrada também no estoque da Despensa (PDFs de RDM / Requisição Interna)</label>');
+  if(foot){
    const c=foot.querySelector('.sec');if(c){c.textContent='Limpar';c.onclick=montar;}}
  }
  async function paraDespensa(lista){
@@ -10058,7 +9629,7 @@ Element.prototype.appendChild=function(n){var r=ap.apply(this,arguments);try{if(
   const fm=window.fecharModal;window.fecharModal=()=>{};
   try{origSalvar.apply(this,arguments);}finally{window.fecharModal=fm;}
   const msg=$('l118-msg');if(msg&&msg.textContent.trim())return;
-  if(marcar&&pdfs.length){const n=await paraDespensa(pdfs);if(n)alert(n+' item(ns) lançado(s) no estoque da Despensa.');}
+  /* itens só entram no estoque após a conferência da requisição */
   montar();
  };
  function vistaImp(){
@@ -10953,7 +10524,7 @@ tr.mx-hide{display:none}
  const LS_DOC='modesk_senac_comprovantes_saida';
  const H=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const F=n=>Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:3});
- const N=v=>{const n=parseFloat(String(v??'').replace(',','.'));return isFinite(n)?n:0;};
+ const N=(v=>{if(typeof v==='number')return isFinite(v)?v:0;let s=String(v==null?'':v).trim().replace(/\s/g,'');if(!s)return 0;if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');const m=s.match(/-?\d+(\.\d+)?/);const n=m?parseFloat(m[0]):NaN;return isFinite(n)?n:0;});
  const dh=d=>d?new Date(d).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
  const br=s=>s?String(s).slice(0,10).split('-').reverse().join('/'):'—';
  const R=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
@@ -11030,5 +10601,198 @@ tr.mx-hide{display:none}
   try{salvarDados();}catch(e){}try{window.loteLimpar&&loteLimpar();}catch(e){}try{renderEstoque();}catch(e){}try{renderCursos();}catch(e){}
   previa(doc);
  };
+})();
+</script>
+
+<script id="v123-docs-individuais">
+/* v123 — cada RDM / requisição / pedido / pagamento é um documento individual.
+   Ajustes de reconhecimento conforme os modelos MXM enviados. */
+(function(){
+const up=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+const n=v=>Number(String(v||'').replace(/\./g,'').replace(',','.'))||0;
+/* número único por documento: se outro tipo de documento já usa o mesmo número (ex.: RDM 488902 x Requisição 488902), recebe sufixo da categoria */
+window.chaveDocReq=function(d,grupos){
+  const num=String(d.num||'').trim();if(!num)return num;
+  const cat=d.categoria||'';
+  const usados=[...(window.requisicoes||[]).map(r=>({num:r.num,cat:r.categoria||''})),...Object.values(grupos||{}).map(g=>({num:g.num,cat:g.categoria||''}))];
+  const conflito=usados.some(u=>u.num===num&&u.cat&&cat&&u.cat!==cat);
+  if(!conflito)return num;
+  const k=num+'-'+cat;return k;
+};
+function corrigirRdm(L,r){
+  /* linhas de continuação da descrição (pdf.js não preserva o recuo) */
+  const its=[];let cur=null;
+  for(const l of L){
+    if(/Total\s+de\s+requisi/i.test(l))break;
+    const m=l.match(/^\s*(\d{3,})\s+(.+?)\s+([A-Z]{1,4})\s+([\d.]*\d,\d+)\s+([\d.]*\d,\d+)\s+([\d.]*\d,\d+)/);
+    if(m){cur={cod:m[1],descricao:m[2].trim(),unidade:m[3],qtd:m[4],vl:n(m[5]),vt:n(m[6])};its.push(cur);continue;}
+    const t=l.trim();
+    if(cur&&t&&!/:|Empregado|Almoxarife|^Item\b|Descri|^Qtde|^sa[ií]da/i.test(t)&&!/\d+,\d{2}\s*$/.test(t)){
+      const colar=/^[A-ZÀ-Ú]+\b/.test(t)&&/[A-Z]$/.test(cur.descricao)&&!/\s/.test(t.split(/\s/)[0].slice(-1))&&t.split(/\s/)[0].length<=6&&!/^-/.test(t);
+      cur.descricao+=(colar?'':' ')+t;
+    }
+  }
+  if(its.length){its.forEach((it,i)=>{const o=r.itens[i];if(o&&o.cod===it.cod){o.descricao=it.descricao;if(!o.vl)o.vl=it.vl;o.vt=it.vt;}});
+    if(r.itens.length!==its.length)r.itens=its;}
+}
+function corrigirInterna(L,r){
+  for(const l of L){
+    const m=l.match(/^\s*(\d{5,})\s+(\d{2}\/\d{2}\/\d{4})\s+\(\d+\)[^\n]*?R\$\s+(\S+)\s+(\S+)/);
+    if(m){if(!r.num)r.num=m[1];if(!r.data)r.data=m[2];if(!r.tipoEst)r.tipoEst=m[3].toUpperCase();if(!r.setor)r.setor=m[4];break;}
+  }
+  /* descrição que continua na linha seguinte e valor total por item */
+  let cur=null,idx=-1;
+  for(const l of L){
+    if(/ITEM\s+\d+\s+C[ÓO]D/i.test(l)){idx++;cur=r.itens[idx]||null;cur&&(cur.__d=true);continue;}
+    if(cur&&cur.__d&&/DESCRI[ÇC][ÃA]O/i.test(l)){cur.__d='prox';continue;}
+    if(cur&&cur.__d==='prox'){if(/GRP\.?\s*DE\s*COTA/i.test(l)||/QNT\./i.test(l)||/FILIAL/i.test(l)){cur.__d=false;}else{const t=l.replace(/\s+STATUS.*$/i,'').trim();if(t&&!cur.descricao.includes(t))cur.descricao+=' '+t;cur.__d=false;}}
+  }
+  r.itens.forEach(it=>{delete it.__d;const q=n(it.qtd)||1;if(it.vl>0)it.vt=Math.round(it.vl*q*100)/100;});
+}
+const ant=window.parseRDM;
+window.parseRDM=function(txt){
+  const r=ant.apply(this,arguments);
+  try{
+    const L=String(txt).split(/\r?\n/).map(l=>l.replace(/\s+$/,''));
+    const T=up(txt);
+    if(r.tipoDoc==='rdm')corrigirRdm(L,r);
+    else if(r.tipoDoc==='interna'&&/REQUISICAO\s+INTERNA/.test(T))corrigirInterna(L,r);
+    if(r.tipoDoc==='interna'&&r.tipoEst&&/^EST_0[124]$/.test(r.tipoEst))r.categoria=r.tipoEst;
+  }catch(e){console.error('[v123]',e);}
+  return r;
+};
+})();
+</script>
+
+<script>
+(function () {
+  const policy = window.ModeskExpiry;
+  const value = (selector, scope = document) => scope.querySelector(selector)?.value || '';
+  function check(items, event) {
+    for (const item of items) {
+      const message = policy.error(item);
+      if (message) {
+        event?.preventDefault();
+        alert(message);
+        return false;
+      }
+    }
+    return true;
+  }
+  function wrap(name, items) {
+    const previous = window[name];
+    if (typeof previous !== 'function') return;
+    window[name] = function (...args) {
+      if (!check(items(...args), args[0]?.preventDefault ? args[0] : undefined)) return;
+      return previous.apply(this, args);
+    };
+  }
+  const individual = () => [{ nome: value('#cad-nome'), categoria: value('#cad-categoria'), entrada: value('#cad-entrada'), validade: value('#cad-validade') }];
+  wrap('salvarItemV28', individual);
+  wrap('salvarItem', individual);
+  wrap('salvarLoteV28', () => [...document.querySelectorAll('#lote-itens>div')].map(row => ({
+    nome: value('.lote-nome', row), categoria: row.dataset.cat || value('#lote-cat'),
+    entrada: value('#lote-entrada'), validade: value('.lote-val', row),
+  })));
+  function receiptItems(num, index) {
+    const request = (window.requisicoes || []).find(r => r.num === num);
+    if (!request) return [];
+    return [...document.querySelectorAll('#modal-box .q83-item[data-k]')]
+      .filter(row => row.querySelector('.c-v') && (index === undefined || Number(row.dataset.k) === index))
+      .map(row => ({ nome: request.itens[Number(row.dataset.k)]?.nome || '', categoria: value('.c-t', row), entrada: value('#q83-data'), validade: value('.c-v', row) }));
+  }
+  wrap('itemOk83', receiptItems);
+  wrap('todosOk83', num => receiptItems(num));
+  // Retired receipt dialogs must use the same atomic, validated confirmation flow.
+  window.confirmarRecebimento25 = num => window.conferirReq83(num);
+  window.lancarRecebimento25 = num => window.todosOk83(num);
+  function refresh() {
+    const input = document.getElementById('cad-validade');
+    if (input) input.required = !policy.exempt(value('#cad-nome'), value('#cad-categoria'));
+    document.querySelectorAll('#lote-itens>div').forEach(row => {
+      const expiry = row.querySelector('.lote-val');
+      if (expiry) expiry.required = !policy.exempt(value('.lote-nome', row), row.dataset.cat || value('#lote-cat'));
+    });
+    const arrival = document.getElementById('q83-data');
+    if (arrival) arrival.required = true;
+  }
+  document.addEventListener('input', refresh);
+  document.addEventListener('change', refresh);
+  const modal = document.getElementById('modal-box');
+  if (modal) new MutationObserver(refresh).observe(modal, { childList: true, subtree: true });
+  refresh();
+})();
+</script>
+<script id="auto-categoria">
+(function(){
+ var P=window.ModeskExpiry;if(!P)return;
+ function cats(){return typeof CATEGORIAS!=='undefined'?CATEGORIAS:[];}
+ function opts(sel){return [].map.call(sel.options,function(o){return o.value;});}
+ function setSel(sel,name){
+  if(!sel||sel.dataset.manual==='1')return;
+  var c=P.suggest(name,opts(sel));if(c&&sel.value!==c){sel.value=c;sel.dataset.auto='1';window.__autoCat=1;sel.dispatchEvent(new Event('change',{bubbles:true}));window.__autoCat=0;}
+ }
+ function hint(sel){
+  var h=sel.parentElement.parentElement.querySelector('.auto-cat-hint');
+  if(!h){h=document.createElement('p');h.className='auto-cat-hint';h.style.cssText='font-size:10px;margin-top:4px;color:#64748b';sel.parentElement.insertAdjacentElement('afterend',h);}
+  h.textContent=sel.dataset.manual==='1'?'Categoria escolhida manualmente':(sel.dataset.auto==='1'?'Categoria identificada automaticamente — altere se preferir':'');
+ }
+ function rowSel(row){
+  var s=row.querySelector('.lote-cat-row');if(s)return s;
+  var val=row.querySelector('.lote-val');if(!val)return null;
+  var cell=val.parentElement;
+  var wrap=document.createElement('div');wrap.className=cell.className;
+  wrap.innerHTML='<label class="block text-[10px] uppercase text-slate-500 mb-1">Categoria</label>';
+  s=document.createElement('select');s.className=val.className.replace('lote-val','')+' lote-cat-row';
+  cats().forEach(function(c){var o=document.createElement('option');o.textContent=c;s.appendChild(o);});
+  var g=document.getElementById('lote-cat');s.value=g?g.value:'';
+  wrap.appendChild(s);cell.insertAdjacentElement('beforebegin',wrap);
+  row.dataset.cat=s.value;return s;
+ }
+ function syncRows(){
+  document.querySelectorAll('#lote-itens>div').forEach(function(row){
+   var s=rowSel(row);if(!s)return;
+   setSel(s,(row.querySelector('.lote-nome')||{}).value||'');row.dataset.cat=s.value;
+  });
+  document.querySelectorAll('#modal-box .q83-item[data-k]').forEach(function(row){
+   var s=row.querySelector('.c-t');if(!s||s.dataset.autoDone)return;s.dataset.autoDone='1';
+   var n=row.querySelector('.q84-nome');var c=P.suggest(n?n.textContent:'',opts(s));
+   if(c&&!s.dataset.manual){s.value=c;window.__autoCat=1;s.dispatchEvent(new Event('change',{bubbles:true}));window.__autoCat=0;}
+  });
+ }
+ document.addEventListener('input',function(e){
+  var t=e.target;if(!t||!t.closest)return;
+  if(t.id==='cad-nome'){var s=document.getElementById('cad-categoria');setSel(s,t.value);if(s)hint(s);}
+  if(t.classList.contains('lote-nome'))syncRows();
+ });
+ document.addEventListener('change',function(e){
+  var t=e.target;if(!t||window.__autoCat)return;
+  if(t.id==='cad-categoria'){t.dataset.manual='1';hint(t);}
+  if(t.classList.contains('lote-cat-row')){t.dataset.manual='1';var r=t.closest('#lote-itens>div');if(r)r.dataset.cat=t.value;}
+  if(t.classList.contains('c-t'))t.dataset.manual='1';
+  if(t.id==='lote-cat')document.querySelectorAll('.lote-cat-row').forEach(function(s){if(s.dataset.manual!=='1'&&s.dataset.auto!=='1'){s.value=t.value;s.closest('#lote-itens>div').dataset.cat=t.value;}});
+ });
+ var mb=document.getElementById('modal-box');
+ if(mb)new MutationObserver(function(){requestAnimationFrame(syncRows);}).observe(mb,{childList:true,subtree:true});
+ // salvar lote: aplica a categoria de cada linha
+ var prev=window.salvarLoteV28;
+ if(typeof prev==='function')window.salvarLoteV28=function(e){
+  var rows=[].slice.call(document.querySelectorAll('#lote-itens>div')).map(function(r){return {id:(r.querySelector('.lote-cod')||{}).value,cat:r.dataset.cat};});
+  var antes=estoque.length;var out=prev.apply(this,arguments);var n=estoque.length-antes;
+  if(n>0)for(var i=0;i<n&&i<rows.length;i++){if(rows[i].cat&&estoque[i])estoque[i].categoria=rows[i].cat;}
+  if(n>0){try{salvarDados();renderEstoque();}catch(_){}}
+  return out;
+ };
+})();
+</script>
+<script id="normaliza-qtd">
+(function(){
+ var N=typeof numQ==='function'?numQ:function(v){return Number(v)||0;};
+ var C=['qtd','enviada','devolvida','quantidade','qtdSolicitada','qtdRecebida','recebida','solicitada'];
+ function fix(list){(list||[]).forEach(function(o){if(!o||typeof o!=='object')return;C.forEach(function(k){if(k in o&&typeof o[k]!=='number'&&o[k]!==''&&o[k]!=null)o[k]=N(o[k]);});if(Array.isArray(o.itens))fix(o.itens);});}
+ function all(){try{fix(estoque);}catch(e){}try{fix(cursoItens);}catch(e){}try{fix(movimentos);}catch(e){}try{fix(window.requisicoes);}catch(e){}try{fix(window.descartes);}catch(e){}}
+ all();
+ var ant=window.salvarDados;if(typeof ant==='function')window.salvarDados=function(){all();return ant.apply(this,arguments);};
+ try{if(typeof salvarDados==='function')salvarDados();if(typeof renderEstoque==='function')renderEstoque();}catch(e){}
 })();
 </script>
