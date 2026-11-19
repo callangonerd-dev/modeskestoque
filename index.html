@@ -6584,7 +6584,7 @@ button.btn-force-white svg, a.btn-force-white svg{stroke:#fff !important;}
    const item=(i,k)=>{
      const st=stItem(r,i),edit=aberta&&(st==='aguardando'||st==='pendente');
      const saldo=Math.max(0,Number(i.requisitar||0)-Number(i.recebido||0))||Number(i.requisitar||0);
-     const cod=i.codigoLote||(r.num+'-'+String(k+1).padStart(2,'0'));
+     const cod=i.codigoLote||(i.lote&&i.lote!=='N/A'?i.lote:'')||(r.num+'-'+String(k+1).padStart(2,'0'));
      return `<div class="q83-item st-${st}" data-k="${k}">
       <div class="flex items-center justify-between gap-3 flex-wrap">
        <div class="q84-head"><p class="q84-nome">${E(i.nome)}</p><p class="q83-sub">Pedido: <b>${i.requisitar} ${E(i.unidade||'')}</b>${Number(i.recebido||0)>0?' · Recebido: <b>'+(i.recebido||0)+'</b>'+(i.chegouEm?' em '+fd(i.chegouEm):''):''}${st==='pendente'?' · Falta: <b>'+saldo+'</b>'+(i.previstoEm?' · Previsto para <b>'+fd(i.previstoEm)+'</b>':''):''}</p>
@@ -6593,7 +6593,7 @@ button.btn-force-white svg, a.btn-force-white svg{stroke:#fff !important;}
       ${edit?`<div class="q83-grid">
         <div><label>Qtd chegou</label><input class="c-q" type="number" min="0" step="any" inputmode="decimal" value="${saldo}"/></div>
         <div><label>Código / lote</label><input class="c-c" value="${E(cod)}"/></div>
-        <div><label>Validade</label><input class="c-v" type="date" value="${E(i.validadeRec||'')}"/></div>
+        <div><label>Validade</label><input class="c-v" type="date" value="${E(i.validadeRec||(/^\d{4}-\d{2}-\d{2}$/.test(i.validade||'')?i.validade:''))}"/></div>
         <div><label>Categoria</label><select class="c-t">${cats.map(x=>`<option ${x===i.categoria?'selected':''}>${E(x)}</option>`).join('')}</select></div>
        <div class="q84-acts">
         <button class="q83-btn q83-ok" title="Confirmar chegada" onclick="itemOk83(${Q(r.num)},${k})"><i class="fa-solid fa-check"></i> Chegou</button>
@@ -8456,7 +8456,7 @@ document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){do
    const g=grupos[n]=({num:n,semNumero:!d.num,data:d.data,setor:d.setor,requisitante:d.requisitante,obs:d.obs,categoria:d.categoria,tipoDoc:d.tipoDoc,arquivos:[],itens:[]});
    g.arquivos.push(a.nome);
    d.itens.forEach(it=>{const nome=it.descricao||('Cód. '+it.cod);const c=categorizarInsumo(nome);
-    g.itens.push({nome,cod:it.cod,unidade:it.unidade||'',qtd:num(it.qtd),categoria:c.id,validade:'',lote:''});});
+    g.itens.push({nome,cod:it.cod,unidade:it.unidade||'',qtd:num(it.qtd),categoria:c.id,validade:it.validade||'',lote:it.lote||''});});
   });
  }
  function linha(g,i,it){
@@ -10794,5 +10794,101 @@ window.parseRDM=function(txt){
  all();
  var ant=window.salvarDados;if(typeof ant==='function')window.salvarDados=function(){all();return ant.apply(this,arguments);};
  try{if(typeof salvarDados==='function')salvarDados();if(typeof renderEstoque==='function')renderEstoque();}catch(e){}
+})();
+</script>
+<script id="rdm-validade-auto">
+/* Validade e lote da RDM: lidos do PDF, preenchidos automaticamente e editáveis pelo operador */
+(function(){
+const iso=d=>{const m=String(d||'').match(/(\d{2})\/(\d{2})\/(\d{4})/);return m?m[3]+'-'+m[2]+'-'+m[1]:'';};
+function extrair(txt){
+  const out={};
+  String(txt).split(/\r?\n/).forEach(l=>{
+    const m=l.match(/^\s*(\d{3,})\s+(.+?)\s+([A-Z]{1,4})\s+([\d.]*\d,\d+)\s+([\d.]*\d,\d+)\s+([\d.]*\d,\d+)(.*)$/);
+    if(!m)return;
+    const resto=m[7].trim(),d=resto.match(/(\d{2}\/\d{2}\/\d{4})/);
+    const lote=(d?resto.slice(0,d.index):resto).trim().split(/\s{2,}/)[0]||'';
+    (out[m[1]]=out[m[1]]||[]).push({validade:d?iso(d[1]):'',lote});
+  });
+  return out;
+}
+const pAnt=window.parseRDM;
+window.parseRDM=function(txt){
+  const r=pAnt.apply(this,arguments)||{itens:[]};
+  if(r.tipoDoc==='rdm'){const mp=extrair(txt);
+    (r.itens||[]).forEach(it=>{const x=mp[it.cod]&&mp[it.cod].shift();if(x){if(!it.validade)it.validade=x.validade;if(!it.lote)it.lote=x.lote;}});}
+  window.__filaValRdm=(r.itens||[]).map(it=>({validade:it.validade||'',lote:it.lote||''}));
+  return r;
+};
+const addAnt=window.addLinhaReq;
+window.addLinhaReq=function(d){
+  const r=addAnt.apply(this,arguments);
+  if(d&&window.__filaValRdm&&window.__filaValRdm.length){const v=window.__filaValRdm.shift();
+    const rows=document.querySelectorAll('#rq-linhas .rq-linha'),row=rows[rows.length-1];
+    if(row){if(v.validade)row.dataset.rdmVal=v.validade;if(v.lote)row.dataset.rdmLote=v.lote;}}
+  return r;
+};
+const abrirAnt=window.abrirRequisicao;
+window.abrirRequisicao=function(){window.__filaValRdm=[];return abrirAnt.apply(this,arguments);};
+const salvarAnt=window.salvarRequisicao;
+window.salvarRequisicao=function(orig){
+  const n=document.getElementById('rq-num'),num=n?n.value.trim():'';
+  const tags=[...document.querySelectorAll('#rq-linhas .rq-linha')].map(row=>({nome:(row.querySelector('.rq-nome')||{}).value||'',v:row.dataset.rdmVal||'',l:row.dataset.rdmLote||''})).filter(t=>t.v||t.l);
+  const ret=salvarAnt.apply(this,arguments);
+  if(tags.length){const q=(window.requisicoes||[]).find(x=>String(x.num)===String(num||orig));
+    if(q&&q.itens){tags.forEach(t=>{const it=q.itens.find(i=>i.nome===t.nome&&!i.__rdmOk);if(!it)return;it.__rdmOk=1;
+      if(t.v&&!it.validadeRec)it.validadeRec=t.v;if(t.v&&!it.validade)it.validade=t.v;
+      if(t.l&&!it.codigoLote)it.codigoLote=t.l;if(t.l&&!it.lote)it.lote=t.l;});
+      q.itens.forEach(i=>delete i.__rdmOk);try{salvarDados();}catch(e){}}}
+  return ret;
+};
+})();
+</script>
+<script id="rdm-validade-auto-v2">
+/* v2: leitura de validade mais tolerante (dd/mm/aa, dd.mm.aaaa, dd-mm-aaaa, mm/aaaa, VAL:/VENC:)
+   procurando em todas as linhas de cada item da RDM, não só na linha principal. */
+(function(){
+const ok=s=>window.ModeskExpiry&&ModeskExpiry.validDate?ModeskExpiry.validDate(s):/^\d{4}-\d{2}-\d{2}$/.test(s);
+const pad=n=>String(n).padStart(2,'0');
+function datas(l){
+  const out=[];let m;
+  const re=/(?:^|[^\d])(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4}|\d{2})(?!\d)/g;
+  while((m=re.exec(l))){let y=m[3].length===2?'20'+m[3]:m[3];const s=y+'-'+pad(m[2])+'-'+pad(m[1]);if(ok(s))out.push({s,i:m.index,lab:/VAL|VENC|VCTO|VTO|EXP/i.test(l.slice(Math.max(0,m.index-14),m.index+1))});}
+  const re2=/(?:^|[^\d\/.\-])(\d{1,2})[\/.\-](\d{4})(?![\d\/.\-])/g;
+  while((m=re2.exec(l))){const mo=+m[1];if(mo<1||mo>12)continue;const last=new Date(Date.UTC(+m[2],mo,0)).getUTCDate();const s=m[2]+'-'+pad(mo)+'-'+pad(last);if(ok(s))out.push({s,i:m.index,lab:/VAL|VENC|VCTO|VTO|EXP/i.test(l.slice(Math.max(0,m.index-14),m.index+1))});}
+  const re3=/(\d{4})-(\d{2})-(\d{2})/g;while((m=re3.exec(l)))if(ok(m[0]))out.push({s:m[0],i:m.index,lab:true});
+  return out;
+}
+const isoBR=d=>{const m=String(d||'').match(/(\d{2})\/(\d{2})\/(\d{4})/);return m?m[3]+'-'+m[2]+'-'+m[1]:'';};
+function escolher(bloco,docData){
+  const ds=[];bloco.forEach(l=>datas(l).forEach(d=>ds.push(d)));
+  const lab=ds.find(d=>d.lab);if(lab)return lab.s;
+  const resto=ds.filter(d=>d.s!==docData);return resto.length?resto[resto.length-1].s:'';
+}
+window.__extrairValidadesRDM=function(txt,r){
+  const L=String(txt).replace(/\u00a0/g,' ').split(/\r?\n/);
+  const docData=isoBR(r&&r.data);const blocos=[];let cur=null;
+  const itemRe=r&&r.tipoDoc==='interna'?/ITEM\s+\d+\s+C[ÓO]D\.?\s*(\d+)/i:/^\s*(\d{3,})\s+\S/;
+  for(const l of L){
+    const m=l.match(itemRe);
+    if(m&&(r.tipoDoc==='interna'||/\d,\d/.test(l))){cur={cod:m[1],linhas:[l]};blocos.push(cur);continue;}
+    if(/Total\s+de\s+requisi|Almoxarife|Assinatura|Empregado/i.test(l)){cur=null;continue;}
+    if(cur)cur.linhas.push(l);
+  }
+  const mp={};blocos.forEach(b=>{(mp[b.cod]=mp[b.cod]||[]).push(escolher(b.linhas,docData));});
+  return mp;
+};
+const pAnt=window.parseRDM;
+if(typeof pAnt!=='function')return;
+window.parseRDM=function(txt){
+  const r=pAnt.apply(this,arguments)||{itens:[]};
+  try{
+    const mp=window.__extrairValidadesRDM(txt,r);
+    (r.itens||[]).forEach(it=>{const f=mp[it.cod];const v=f&&f.length?f.shift():'';if(!ok(it.validade||'')&&v)it.validade=v;});
+    window.__filaValRdm=(r.itens||[]).map(it=>({validade:it.validade||'',lote:it.lote||''}));
+    const n=(r.itens||[]).filter(i=>ok(i.validade||'')).length;
+    setTimeout(()=>{const st=document.getElementById('rq-auto-status');if(st&&r.itens&&r.itens.length&&!/validade/i.test(st.innerHTML))st.insertAdjacentHTML('beforeend',' · Validade lida em <b>'+n+' de '+r.itens.length+'</b> item(ns)');},80);
+  }catch(e){console.error('[validade RDM]',e);}
+  return r;
+};
 })();
 </script>
